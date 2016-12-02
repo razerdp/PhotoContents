@@ -16,8 +16,32 @@
 
 当然目前来说这个控件还只是一个初步版本，后续如果有时间我会慢慢优化的。
 
-ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](https://github.com/razerdp/FriendCircle/tree/main-dev)服务，大部分的更新都会在那里提交，如果您需要获取新的更新信息，可以通过另一个项目获知。
+ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](https://github.com/razerdp/FriendCircle)服务，大部分的更新都会在那里提交，如果您需要获取新的更新信息，可以通过另一个项目获知。
 
+# Download  [![](https://jitpack.io/v/razerdp/PhotoContents.svg)](https://jitpack.io/#razerdp/PhotoContents)
 
+**Step 1.**
+
+Add the JitPack repository to your build file
+
+Add it in your root build.gradle at the end of repositories:
+```xml
+	allprojects {
+		repositories {
+			...
+			maven { url "https://jitpack.io" }
+		}
+	}
+```
+
+**Step 2.**
+
+Add the dependency
+
+```xml
+	dependencies {
+	        compile 'com.github.razerdp:PhotoContents:v1.0'
+	}
+```
 
 
