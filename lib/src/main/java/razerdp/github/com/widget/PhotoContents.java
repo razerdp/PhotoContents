@@ -25,16 +25,16 @@ public class PhotoContents extends FlowLayout {
 
     private PhotoContentsBaseAdapter mAdapter;
     private PhotoImageAdapterObserver mAdapterObserver = new PhotoImageAdapterObserver();
-
     private InnerRecyclerHelper recycler;
-
     private int mItemCount;
-
     private boolean mDataChanged;
-
     private int itemMargin;
-
     private int multiChildSize;
+
+    private int maxSingleWidth;
+    private int maxSingleHeight;
+    //宽高比
+    private float singleAspectRatio = 16f / 9f;
 
 
     public PhotoContents(Context context) {
@@ -66,6 +66,8 @@ public class PhotoContents extends FlowLayout {
         int childRestWidth = widthSize - getPaddingLeft() - getPaddingRight();
         updateItemCount();
         multiChildSize = childRestWidth / 3 - itemMargin * 2;
+        maxSingleWidth = childRestWidth * 2 / 3;
+        maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
 
         if (mDataChanged) {
             if (mAdapter == null || mItemCount == 0) {
@@ -114,6 +116,9 @@ public class PhotoContents extends FlowLayout {
     private void fillSingleView() {
         final ImageView singleChild = obtainView(0);
         singleChild.setAdjustViewBounds(true);
+        singleChild.setMaxWidth(maxSingleWidth);
+        singleChild.setMaxHeight(maxSingleHeight);
+        singleChild.setScaleType(ImageView.ScaleType.FIT_START);
         setupViewAndAddView(0, singleChild, false, true);
     }
 
@@ -129,9 +134,12 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setupViewAndAddView(int position, @NonNull View v, boolean newLine, boolean isSingle) {
+    private void setupViewAndAddView(int position, @NonNull ImageView v, boolean newLine, boolean isSingle) {
         setItemLayoutParams(v, newLine, isSingle);
-        mAdapter.onBindData(position, (ImageView) v);
+        if (onSetUpChildLayoutParams != null) {
+            onSetUpChildLayoutParams.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
+        }
+        mAdapter.onBindData(position, v);
         if (v.isLayoutRequested()) {
             attachViewToParent(v, position, v.getLayoutParams());
         } else {
@@ -141,7 +149,7 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setItemLayoutParams(@NonNull View v, boolean needLine, boolean isSingle) {
+    private void setItemLayoutParams(@NonNull ImageView v, boolean needLine, boolean isSingle) {
         ViewGroup.LayoutParams p = v.getLayoutParams();
         if (p == null || !(p instanceof LayoutParams)) {
             LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle);
@@ -284,5 +292,46 @@ public class PhotoContents extends FlowLayout {
             super.onInvalidated();
             invalidate();
         }
+    }
+
+    //------------------------------------------getter/setter-----------------------------------------------
+
+    public float getSingleAspectRatio() {
+        return singleAspectRatio;
+    }
+
+    public void setSingleAspectRatio(float singleAspectRatio) {
+        this.singleAspectRatio = singleAspectRatio;
+    }
+
+    public int getMaxSingleWidth() {
+        return maxSingleWidth;
+    }
+
+    public void setMaxSingleWidth(int maxSingleWidth) {
+        this.maxSingleWidth = maxSingleWidth;
+    }
+
+    public int getMaxSingleHeight() {
+        return maxSingleHeight;
+    }
+
+    public void setMaxSingleHeight(int maxSingleHeight) {
+        this.maxSingleHeight = maxSingleHeight;
+    }
+
+    public OnSetUpChildLayoutParams getOnSetUpChildLayoutParams() {
+        return onSetUpChildLayoutParams;
+    }
+
+    public void setOnSetUpChildLayoutParams(OnSetUpChildLayoutParams onSetUpChildLayoutParams) {
+        this.onSetUpChildLayoutParams = onSetUpChildLayoutParams;
+    }
+
+    //------------------------------------------Interface-----------------------------------------------
+    private OnSetUpChildLayoutParams onSetUpChildLayoutParams;
+
+    public interface OnSetUpChildLayoutParams {
+        void onSetUpParams(ImageView child, LayoutParams p, int position, boolean isSingle);
     }
 }
