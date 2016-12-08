@@ -40,7 +40,7 @@ Add the dependency
 
 ```xml
 	dependencies {
-	        compile 'com.github.razerdp:PhotoContents:v1.0'
+	        compile 'com.github.razerdp:PhotoContents:v1.1'
 	}
 ```
 
