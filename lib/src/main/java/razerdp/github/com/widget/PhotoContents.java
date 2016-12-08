@@ -3,7 +3,6 @@ package razerdp.github.com.widget;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -67,8 +66,10 @@ public class PhotoContents extends FlowLayout {
         int childRestWidth = widthSize - getPaddingLeft() - getPaddingRight();
         updateItemCount();
         multiChildSize = childRestWidth / 3 - itemMargin * 2;
-        maxSingleWidth = childRestWidth * 2 / 3;
-        maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+        if (maxSingleWidth == 0) {
+            maxSingleWidth = childRestWidth * 2 / 3;
+            maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+        }
 
         if (mDataChanged) {
             if (mAdapter == null || mItemCount == 0) {
@@ -137,8 +138,8 @@ public class PhotoContents extends FlowLayout {
 
     private void setupViewAndAddView(int position, @NonNull ImageView v, boolean newLine, boolean isSingle) {
         setItemLayoutParams(v, newLine, isSingle);
-        if (onSetUpChildLayoutParams != null) {
-            onSetUpChildLayoutParams.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
+        if (onSetUpChildLayoutParamsListener != null) {
+            onSetUpChildLayoutParamsListener.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
         }
         mAdapter.onBindData(position, v);
         if (v.isLayoutRequested()) {
@@ -304,6 +305,9 @@ public class PhotoContents extends FlowLayout {
     }
 
     public void setSingleAspectRatio(float singleAspectRatio) {
+        if (this.singleAspectRatio != singleAspectRatio && maxSingleWidth != 0) {
+            this.maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+        }
         this.singleAspectRatio = singleAspectRatio;
     }
 
@@ -323,18 +327,18 @@ public class PhotoContents extends FlowLayout {
         this.maxSingleHeight = maxSingleHeight;
     }
 
-    public OnSetUpChildLayoutParams getOnSetUpChildLayoutParams() {
-        return onSetUpChildLayoutParams;
+    public OnSetUpChildLayoutParamsListener getOnSetUpChildLayoutParamsListener() {
+        return onSetUpChildLayoutParamsListener;
     }
 
-    public void setOnSetUpChildLayoutParams(OnSetUpChildLayoutParams onSetUpChildLayoutParams) {
-        this.onSetUpChildLayoutParams = onSetUpChildLayoutParams;
+    public void setOnSetUpChildLayoutParamsListener(OnSetUpChildLayoutParamsListener onSetUpChildLayoutParamsListener) {
+        this.onSetUpChildLayoutParamsListener = onSetUpChildLayoutParamsListener;
     }
 
     //------------------------------------------Interface-----------------------------------------------
-    private OnSetUpChildLayoutParams onSetUpChildLayoutParams;
+    private OnSetUpChildLayoutParamsListener onSetUpChildLayoutParamsListener;
 
-    public interface OnSetUpChildLayoutParams {
+    public interface OnSetUpChildLayoutParamsListener {
         void onSetUpParams(ImageView child, LayoutParams p, int position, boolean isSingle);
     }
 }
