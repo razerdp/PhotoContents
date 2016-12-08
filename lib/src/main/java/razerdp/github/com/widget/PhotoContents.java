@@ -3,6 +3,7 @@ package razerdp.github.com.widget;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -214,7 +215,9 @@ public class PhotoContents extends FlowLayout {
     protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle) {
         LayoutParams p;
         if (isSingle) {
-            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            p = new PhotoContents.LayoutParams(maxSingleWidth, maxSingleHeight);
+
         } else {
             p = new PhotoContents.LayoutParams(multiChildSize, multiChildSize);
         }
