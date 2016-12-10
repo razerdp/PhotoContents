@@ -134,6 +134,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             @Override
             public void onBindData(MomentsInfo data, int position) {
                 //因为使用的是朋友圈的模拟数据，所以也会存在图片为空的情况，所以这里判空，实际上因为是多type，所以实际应用中并不需要这样处理
+                //详细使用请看朋友圈项目:https://github.com/razerdp/FriendCircle
                 List<String> pics = data.getContent().getPics();
                 if (ToolUtil.isListEmpty(pics)) return;
                 if (adapter == null) {
