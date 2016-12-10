@@ -18,6 +18,10 @@
 
 ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](https://github.com/razerdp/FriendCircle)服务，大部分的更新都会在那里提交，如果您需要获取新的更新信息，可以通过另一个项目获知。
 
+
+# Preview:
+![](https://github.com/razerdp/PhotoContents/blob/master/art/device-2016-12-10-210206.gif)
+
 # Download  [![](https://jitpack.io/v/razerdp/PhotoContents.svg)](https://jitpack.io/#razerdp/PhotoContents)
 
 **Step 1.**
