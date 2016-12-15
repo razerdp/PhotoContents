@@ -20,7 +20,7 @@ ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](htt
 
 
 # Preview:
-![](https://github.com/razerdp/PhotoContents/blob/master/art/device-2016-12-10-210206.gif)
+![](https://github.com/razerdp/PhotoContents/blob/master/art/preview.gif)
 
 # Download  [![](https://jitpack.io/v/razerdp/PhotoContents.svg)](https://jitpack.io/#razerdp/PhotoContents)
 

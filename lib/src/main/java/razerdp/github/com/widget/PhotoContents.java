@@ -1,14 +1,20 @@
 package razerdp.github.com.widget;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.SparseArray;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import org.apmem.tools.layouts.FlowLayout;
+
+import java.util.LinkedList;
+import java.util.List;
 
 import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
 import razerdp.github.com.widget.adapter.observer.PhotoBaseDataObserver;
@@ -23,6 +29,8 @@ import razerdp.github.com.widget.util.SimpleObjectPool;
 
 public class PhotoContents extends FlowLayout {
 
+    private final int INVALID_POSITION = -1;
+
     private PhotoContentsBaseAdapter mAdapter;
     private PhotoImageAdapterObserver mAdapterObserver = new PhotoImageAdapterObserver();
     private InnerRecyclerHelper recycler;
@@ -36,6 +44,11 @@ public class PhotoContents extends FlowLayout {
     //宽高比
     private float singleAspectRatio = 16f / 9f;
 
+    private int mSelectedPosition = INVALID_POSITION;
+
+    private Rect mTouchFrame;
+
+    private Runnable mTouchReset;
 
     public PhotoContents(Context context) {
         super(context);
@@ -142,12 +155,7 @@ public class PhotoContents extends FlowLayout {
             onSetUpChildLayoutParamsListener.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
         }
         mAdapter.onBindData(position, v);
-        if (v.isLayoutRequested()) {
-            attachViewToParent(v, position, v.getLayoutParams());
-        } else {
-            addViewInLayout(v, position, v.getLayoutParams(), true);
-        }
-
+        addViewInLayout(v, position, v.getLayoutParams(), true);
     }
 
 
@@ -298,6 +306,130 @@ public class PhotoContents extends FlowLayout {
         }
     }
 
+
+    public boolean performItemClick(ImageView view, int position) {
+        final boolean result;
+        if (mOnItemClickListener != null) {
+            mOnItemClickListener.onItemClick(view, position);
+            result = true;
+        } else {
+            result = false;
+        }
+        return result;
+    }
+    //------------------------------------------TouchEvent-----------------------------------------------
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!isEnabled()) {
+            return isClickable() || isLongClickable();
+        }
+        final int actionMasked = event.getActionMasked();
+        switch (actionMasked) {
+            case MotionEvent.ACTION_DOWN: {
+                onTouchDown(event);
+                break;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                onTouchUp(event);
+                break;
+            }
+
+            case MotionEvent.ACTION_CANCEL: {
+                setPressed(false);
+                break;
+            }
+        }
+        return true;
+    }
+
+    private void onTouchDown(MotionEvent event) {
+        final int x = (int) event.getX();
+        final int y = (int) event.getY();
+
+        if (!mDataChanged) {
+            final int selectionPosition = pointToPosition(x, y);
+            if (checkPositionValided(selectionPosition)) {
+                View view = getChildAt(selectionPosition);
+                if (view != null && view.isEnabled()) {
+                    updateChildPressState(selectionPosition, true);
+                    this.mSelectedPosition = selectionPosition;
+                }
+            }
+        }
+    }
+
+    private void onTouchUp(MotionEvent event) {
+        final int selectionPosition = mSelectedPosition;
+        if (!mDataChanged) {
+            if (checkPositionValided(selectionPosition)) {
+                final View child = getChildAt(selectionPosition);
+                updateChildPressState(selectionPosition, true);
+                performItemClick((ImageView) child, selectionPosition);
+                if (mTouchReset != null) {
+                    removeCallbacks(mTouchReset);
+                }
+                mTouchReset = new Runnable() {
+                    @Override
+                    public void run() {
+                        child.setPressed(false);
+                    }
+                };
+                postDelayed(mTouchReset, ViewConfiguration.getPressedStateDuration());
+            }
+        } else {
+            if (checkPositionValided(selectionPosition)) updateChildPressState(selectionPosition, false);
+        }
+    }
+
+
+    private boolean checkPositionValided(int position) {
+        boolean result = true;
+        final int childCount = getChildCount();
+        if (mDataChanged) {
+            result = false;
+        }
+        if (position <= INVALID_POSITION || position > childCount - 1) {
+            result = false;
+        }
+        return result;
+    }
+
+    public void updateChildPressState(int position, boolean press) {
+        if (checkPositionValided(position)) {
+            final View child = getChildAt(position);
+            if (press) {
+                child.requestFocus();
+            }
+            child.setPressed(press);
+        }
+    }
+
+
+    /**
+     * 捕获点击的view并返回其position
+     *
+     * @param x
+     * @param y
+     * @return
+     */
+    public int pointToPosition(int x, int y) {
+        if (mTouchFrame == null) mTouchFrame = new Rect();
+        final int childCount = getChildCount();
+        for (int i = childCount - 1; i >= 0; i--) {
+            final View child = getChildAt(i);
+            if (child != null && child.getVisibility() == VISIBLE) {
+                child.getHitRect(mTouchFrame);
+                if (mTouchFrame.contains(x, y)) {
+                    return i;
+                }
+            }
+        }
+        return INVALID_POSITION;
+    }
+
+
     //------------------------------------------getter/setter-----------------------------------------------
 
     public float getSingleAspectRatio() {
@@ -335,10 +467,39 @@ public class PhotoContents extends FlowLayout {
         this.onSetUpChildLayoutParamsListener = onSetUpChildLayoutParamsListener;
     }
 
+    public OnItemClickListener getmOnItemClickListener() {
+        return mOnItemClickListener;
+    }
+
+    public void setmOnItemClickListener(OnItemClickListener mOnItemClickListener) {
+        this.mOnItemClickListener = mOnItemClickListener;
+    }
+
+    public List<Rect> getContentViewsGlobalVisibleRects() {
+        final int childCount = getChildCount();
+        if (childCount <= 0) return null;
+        List<Rect> viewRects = new LinkedList<>();
+        for (int i = 0; i < childCount; i++) {
+            View v = getChildAt(i);
+            if (v != null) {
+                Rect rect = new Rect();
+                v.getGlobalVisibleRect(rect);
+                viewRects.add(rect);
+            }
+        }
+        return viewRects;
+    }
+
     //------------------------------------------Interface-----------------------------------------------
     private OnSetUpChildLayoutParamsListener onSetUpChildLayoutParamsListener;
 
     public interface OnSetUpChildLayoutParamsListener {
         void onSetUpParams(ImageView child, LayoutParams p, int position, boolean isSingle);
+    }
+
+    private OnItemClickListener mOnItemClickListener;
+
+    public interface OnItemClickListener {
+        void onItemClick(ImageView view, int position);
     }
 }
