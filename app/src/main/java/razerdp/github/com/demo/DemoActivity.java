@@ -7,6 +7,7 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -23,6 +24,7 @@ import razerdp.github.com.demo.model.entity.MomentsInfo;
 import razerdp.github.com.demo.net.MomentsRequest;
 import razerdp.github.com.demo.net.base.SimpleResponseListener;
 import razerdp.github.com.demo.utils.ToolUtil;
+import razerdp.github.com.demo.utils.UIHelper;
 import razerdp.github.com.widget.PhotoContents;
 import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
 
@@ -121,7 +123,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             return new InnerViewHolder(inflatedView, viewType);
         }
 
-        private class InnerViewHolder extends BaseRecyclerViewHolder<MomentsInfo> {
+        private class InnerViewHolder extends BaseRecyclerViewHolder<MomentsInfo> implements PhotoContents.OnItemClickListener{
 
             private PhotoContents imageContainer;
             private InnerContainerAdapter adapter;
@@ -129,12 +131,12 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             public InnerViewHolder(View itemView, int viewType) {
                 super(itemView, viewType);
                 imageContainer = (PhotoContents) itemView.findViewById(R.id.photocontents);
+                imageContainer.setmOnItemClickListener(this);
             }
 
             @Override
             public void onBindData(MomentsInfo data, int position) {
                 //因为使用的是朋友圈的模拟数据，所以也会存在图片为空的情况，所以这里判空，实际上因为是多type，所以实际应用中并不需要这样处理
-                //详细使用请看朋友圈项目:https://github.com/razerdp/FriendCircle
                 List<String> pics = data.getContent().getPics();
                 if (ToolUtil.isListEmpty(pics)) return;
                 if (adapter == null) {
@@ -143,6 +145,12 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                 } else {
                     adapter.updateData(data.getContent().getPics());
                 }
+            }
+
+            @Override
+            public void onItemClick(ImageView view, int position) {
+               Log.d("onItemClick","position  >>>  "+position);
+
             }
 
             private class InnerContainerAdapter extends PhotoContentsBaseAdapter {
@@ -160,7 +168,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                 @Override
                 public ImageView onCreateView(ImageView convertView, ViewGroup parent, int position) {
                     if (convertView == null) {
-                        convertView = new ImageView(context);
+                        convertView = new ForceClickImageView(context);
                         convertView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     }
                     return convertView;
@@ -180,11 +188,6 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                     this.datas.clear();
                     this.datas.addAll(datas);
                     notifyDataChanged();
-                }
-
-                @Override
-                public void onItemClick(View convertView, int position, Rect visibleRect, Rect[] allItemRects) {
-
                 }
             }
         }

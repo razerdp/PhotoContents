@@ -40,6 +40,4 @@ public abstract class PhotoContentsBaseAdapter {
     public abstract void onBindData(int position, @NonNull ImageView convertView);
 
     public abstract int getCount();
-
-    public abstract void onItemClick(View convertView, int position, Rect visibleRect, Rect[] allItemRects);
 }
