@@ -1,6 +1,7 @@
 package razerdp.github.com.widget;
 
 import android.content.Context;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
@@ -488,6 +489,20 @@ public class PhotoContents extends FlowLayout {
             }
         }
         return viewRects;
+    }
+
+    public List<Matrix> getContentViewsDrawableMatrixList(){
+        final int childCount = getChildCount();
+        if (childCount <= 0) return null;
+        List<Matrix> viewMatrixs = new LinkedList<>();
+        for (int i = 0; i < childCount; i++) {
+            View v = getChildAt(i);
+            if (v instanceof ImageView&&((ImageView) v).getDrawable()!=null) {
+                Matrix matrix=((ImageView) v).getImageMatrix();
+                viewMatrixs.add(matrix);
+            }
+        }
+        return viewMatrixs;
     }
 
     //------------------------------------------Interface-----------------------------------------------
