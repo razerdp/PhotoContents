@@ -499,7 +499,7 @@ public class PhotoContents extends FlowLayout {
         for (int i = 0; i < childCount; i++) {
             View v = getChildAt(i);
             if (v != null) {
-                Rect rect = getDrawableBounds((ImageView) v);
+                Rect rect = getDrawableBoundsInView((ImageView) v);
                 viewRects.add(rect);
             }
         }
@@ -520,20 +520,23 @@ public class PhotoContents extends FlowLayout {
         return viewMatrixs;
     }
 
-    private Rect getDrawableBounds(ImageView iv) {
+    private Rect getDrawableBoundsInView(ImageView iv) {
         if (iv == null || iv.getDrawable() == null) return null;
         Drawable d = iv.getDrawable();
         Rect result = new Rect();
+        iv.getGlobalVisibleRect(result);
         Rect tDrawableRect = d.getBounds();
         Matrix drawableMatrix = iv.getImageMatrix();
 
         float[] values = new float[9];
-        drawableMatrix.getValues(values);
+        if (drawableMatrix != null) {
+            drawableMatrix.getValues(values);
+        }
 
-        result.left = (int) values[Matrix.MTRANS_X];
-        result.top = (int) values[Matrix.MTRANS_Y];
-        result.right = (int) (result.left + tDrawableRect.width() * values[Matrix.MSCALE_X]);
-        result.bottom = (int) (result.top + tDrawableRect.height() * values[Matrix.MSCALE_Y]);
+        result.left = result.left + (int) values[Matrix.MTRANS_X];
+        result.top = result.top + (int) values[Matrix.MTRANS_Y];
+        result.right = (int) (result.left + tDrawableRect.width() * (values[Matrix.MSCALE_X] == 0 ? 1.0f : values[Matrix.MSCALE_X]));
+        result.bottom = (int) (result.top + tDrawableRect.height() * (values[Matrix.MSCALE_Y] == 0 ? 1.0f : values[Matrix.MSCALE_Y]));
 
         return result;
     }

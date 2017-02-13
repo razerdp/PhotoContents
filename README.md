@@ -44,7 +44,7 @@ Add the dependency
 
 ```xml
 	dependencies {
-	        compile 'com.github.razerdp:PhotoContents:v1.3'
+	        compile 'com.github.razerdp:PhotoContents:{最新版}'  //最新版看上方JitPack标签
 	}
 ```
 
