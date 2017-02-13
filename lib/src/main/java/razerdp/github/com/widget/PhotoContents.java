@@ -3,6 +3,7 @@ package razerdp.github.com.widget;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.SparseArray;
@@ -491,18 +492,50 @@ public class PhotoContents extends FlowLayout {
         return viewRects;
     }
 
-    public List<Matrix> getContentViewsDrawableMatrixList(){
+    public List<Rect> getContentViewsDrawableRects() {
+        final int childCount = getChildCount();
+        if (childCount <= 0) return null;
+        List<Rect> viewRects = new LinkedList<>();
+        for (int i = 0; i < childCount; i++) {
+            View v = getChildAt(i);
+            if (v != null) {
+                Rect rect = getDrawableBounds((ImageView) v);
+                viewRects.add(rect);
+            }
+        }
+        return viewRects;
+    }
+
+    public List<Matrix> getContentViewsDrawableMatrixList() {
         final int childCount = getChildCount();
         if (childCount <= 0) return null;
         List<Matrix> viewMatrixs = new LinkedList<>();
         for (int i = 0; i < childCount; i++) {
             View v = getChildAt(i);
-            if (v instanceof ImageView&&((ImageView) v).getDrawable()!=null) {
-                Matrix matrix=((ImageView) v).getImageMatrix();
+            if (v instanceof ImageView && ((ImageView) v).getDrawable() != null) {
+                Matrix matrix = ((ImageView) v).getImageMatrix();
                 viewMatrixs.add(matrix);
             }
         }
         return viewMatrixs;
+    }
+
+    private Rect getDrawableBounds(ImageView iv) {
+        if (iv == null || iv.getDrawable() == null) return null;
+        Drawable d = iv.getDrawable();
+        Rect result = new Rect();
+        Rect tDrawableRect = d.getBounds();
+        Matrix drawableMatrix = iv.getImageMatrix();
+
+        float[] values = new float[9];
+        drawableMatrix.getValues(values);
+
+        result.left = (int) values[Matrix.MTRANS_X];
+        result.top = (int) values[Matrix.MTRANS_Y];
+        result.right = (int) (result.left + tDrawableRect.width() * values[Matrix.MSCALE_X]);
+        result.bottom = (int) (result.top + tDrawableRect.height() * values[Matrix.MSCALE_Y]);
+
+        return result;
     }
 
     //------------------------------------------Interface-----------------------------------------------
