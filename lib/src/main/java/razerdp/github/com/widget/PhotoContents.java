@@ -360,6 +360,8 @@ public class PhotoContents extends FlowLayout {
                 } else {
                     this.mSelectedPosition = INVALID_POSITION;
                 }
+            }else {
+                this.mSelectedPosition = INVALID_POSITION;
             }
         } else {
             this.mSelectedPosition = INVALID_POSITION;
