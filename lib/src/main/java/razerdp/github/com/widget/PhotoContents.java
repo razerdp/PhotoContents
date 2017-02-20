@@ -357,8 +357,12 @@ public class PhotoContents extends FlowLayout {
                 if (view != null && view.isEnabled()) {
                     updateChildPressState(selectionPosition, true);
                     this.mSelectedPosition = selectionPosition;
+                } else {
+                    this.mSelectedPosition = INVALID_POSITION;
                 }
             }
+        } else {
+            this.mSelectedPosition = INVALID_POSITION;
         }
     }
 
