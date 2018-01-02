@@ -89,6 +89,7 @@ public class PhotoContents extends FlowLayout {
         if (mDataChanged) {
             if (mAdapter == null || mItemCount == 0) {
                 resetContainer();
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
                 return;
             }
             final int childCount = getChildCount();
@@ -360,7 +361,7 @@ public class PhotoContents extends FlowLayout {
                 } else {
                     this.mSelectedPosition = INVALID_POSITION;
                 }
-            }else {
+            } else {
                 this.mSelectedPosition = INVALID_POSITION;
             }
         } else {
@@ -387,7 +388,8 @@ public class PhotoContents extends FlowLayout {
                 postDelayed(mTouchReset, ViewConfiguration.getPressedStateDuration());
             }
         } else {
-            if (checkPositionValided(selectionPosition)) updateChildPressState(selectionPosition, false);
+            if (checkPositionValided(selectionPosition))
+                updateChildPressState(selectionPosition, false);
         }
     }
 
