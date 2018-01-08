@@ -1,5 +1,7 @@
 # 朋友圈图片容器
 
+[ ![Download](https://api.bintray.com/packages/razerdp/maven/PhotoContents/images/download.svg) ](https://bintray.com/razerdp/maven/PhotoContents/_latestVersion)
+
 本控件继承于[FlowLayout](https://github.com/ApmeM/android-flowlayout)
 
 针对AbsListView或者RecyclerView来进行View的二级缓存，采取的是adapter模式以及观察者。
@@ -22,34 +24,20 @@ ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](htt
 # Preview:
 ![](https://github.com/razerdp/PhotoContents/blob/master/art/preview.gif)
 
-# Download  [![](https://jitpack.io/v/razerdp/PhotoContents.svg)](https://jitpack.io/#razerdp/PhotoContents)
+# Download  [ ![Download](https://api.bintray.com/packages/razerdp/maven/PhotoContents/images/download.svg) ](https://bintray.com/razerdp/maven/PhotoContents/_latestVersion)
 
 **Step 1.**
-
-Add the JitPack repository to your build file
-
-Add it in your root build.gradle at the end of repositories:
-```xml
-	allprojects {
-		repositories {
-			...
-			maven { url "https://jitpack.io" }
-		}
-	}
-```
-
-**Step 2.**
 
 Add the dependency
 
 ```xml
 	dependencies {
-	        compile 'com.github.razerdp:PhotoContents:{最新版}'  //最新版看上方JitPack标签
+	        compile 'com.github.razerdp:PhotoContents:{最新版}'  //最新版看上方Jcenter标签
 	}
 ```
 
 
-###Update log
+### Update log
 
  - 2017/02/20
     + 修复点击后点击空白页面响应了之前的点击事件的问题

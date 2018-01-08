@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.view.MotionEvent;
@@ -152,7 +151,7 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setupViewAndAddView(int position, @NonNull ImageView v, boolean newLine, boolean isSingle) {
+    private void setupViewAndAddView(int position, ImageView v, boolean newLine, boolean isSingle) {
         setItemLayoutParams(v, newLine, isSingle);
         if (onSetUpChildLayoutParamsListener != null) {
             onSetUpChildLayoutParamsListener.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
@@ -162,7 +161,7 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setItemLayoutParams(@NonNull ImageView v, boolean needLine, boolean isSingle) {
+    private void setItemLayoutParams(ImageView v, boolean needLine, boolean isSingle) {
         ViewGroup.LayoutParams p = v.getLayoutParams();
         if (p == null || !(p instanceof LayoutParams)) {
             LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle);

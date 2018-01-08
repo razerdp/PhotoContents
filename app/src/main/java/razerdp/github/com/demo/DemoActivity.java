@@ -1,12 +1,10 @@
 package razerdp.github.com.demo;
 
 import android.content.Context;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,8 +21,8 @@ import razerdp.github.com.demo.baseadapter.BaseRecyclerViewHolder;
 import razerdp.github.com.demo.model.entity.MomentsInfo;
 import razerdp.github.com.demo.net.MomentsRequest;
 import razerdp.github.com.demo.net.base.SimpleResponseListener;
+import razerdp.github.com.demo.utils.BmobUrlUtil;
 import razerdp.github.com.demo.utils.ToolUtil;
-import razerdp.github.com.demo.utils.UIHelper;
 import razerdp.github.com.widget.PhotoContents;
 import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
 
@@ -123,7 +121,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             return new InnerViewHolder(inflatedView, viewType);
         }
 
-        private class InnerViewHolder extends BaseRecyclerViewHolder<MomentsInfo> implements PhotoContents.OnItemClickListener{
+        private class InnerViewHolder extends BaseRecyclerViewHolder<MomentsInfo> implements PhotoContents.OnItemClickListener {
 
             private PhotoContents imageContainer;
             private InnerContainerAdapter adapter;
@@ -149,7 +147,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
 
             @Override
             public void onItemClick(ImageView view, int position) {
-               Log.d("onItemClick","position  >>>  "+position);
+                Log.d("onItemClick", "position  >>>  " + position);
 
             }
 
@@ -176,7 +174,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
 
                 @Override
                 public void onBindData(int position, @NonNull ImageView convertView) {
-                    ImageLoadMnanger.INSTANCE.loadImage(convertView, datas.get(position));
+                    ImageLoadMnanger.INSTANCE.loadImage(convertView, BmobUrlUtil.getThumbImageUrl(datas.get(position), 50));
                 }
 
                 @Override

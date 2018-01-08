@@ -1,7 +1,5 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-
-group='com.github.razerdp'
+apply plugin: 'com.novoda.bintray-release'
 
 android {
     compileSdkVersion 25
@@ -22,6 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
 }
 
 dependencies {
@@ -29,8 +31,17 @@ dependencies {
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:25.0.1'
     testCompile 'junit:junit:4.12'
     //flow layout
     compile 'org.apmem.tools:layouts:1.10@aar'
+}
+
+
+publish {
+    userOrg = 'razerdp'
+    groupId = 'com.github.razerdp'
+    artifactId = 'PhotoContents'
+    publishVersion = '1.4.2'
+    desc = '朋友圈九宫格'
+    website = 'https://github.com/razerdp/PhotoContents'
 }

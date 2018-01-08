@@ -1,8 +1,5 @@
 package razerdp.github.com.widget.adapter;
 
-import android.graphics.Rect;
-import android.support.annotation.NonNull;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
@@ -37,7 +34,7 @@ public abstract class PhotoContentsBaseAdapter {
 
     public abstract ImageView onCreateView(ImageView convertView, ViewGroup parent, int position);
 
-    public abstract void onBindData(int position, @NonNull ImageView convertView);
+    public abstract void onBindData(int position, ImageView convertView);
 
     public abstract int getCount();
 }
