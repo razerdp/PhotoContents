@@ -32,7 +32,7 @@ dependencies {
     })
     testImplementation 'junit:junit:4.12'
     //flow layout
-    implementation 'org.apmem.tools:layouts:1.10@aar'
+    api 'org.apmem.tools:layouts:1.10@aar'
 }
 
 
@@ -40,7 +40,7 @@ publish {
     userOrg = 'razerdp'
     groupId = 'com.github.razerdp'
     artifactId = 'PhotoContents'
-    publishVersion = '1.4.2'
+    publishVersion = '1.4.5'
     desc = '朋友圈九宫格'
     website = 'https://github.com/razerdp/PhotoContents'
 }
