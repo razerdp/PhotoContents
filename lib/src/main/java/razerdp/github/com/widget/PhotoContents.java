@@ -138,7 +138,7 @@ public class PhotoContents extends FlowLayout {
     }
 
     private boolean isNewLine(int i, int childCount) {
-        return (childCount == 4 && i % 2 == 0) || (childCount > 4 && i % 3 == 0);
+        return (childCount == 4 && i % 2 == 0) || (childCount != 1 && childCount != 4 && i % 3 == 0);
     }
 
     private void fillSingleView() {
@@ -161,9 +161,9 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setItemLayoutParams(ImageView v, boolean needLine, boolean isSingle) {
-        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, needLine);
-        childLP.setNewLine(needLine);
+    private void setItemLayoutParams(ImageView v, boolean newLine, boolean isSingle) {
+        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, newLine);
+        childLP.setNewLine(newLine);
         v.setLayoutParams(childLP);
     }
 
@@ -218,7 +218,7 @@ public class PhotoContents extends FlowLayout {
         return child;
     }
 
-    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean needLine) {
+    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean newLine) {
         LayoutParams p;
         if (isSingle) {
 //            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -227,7 +227,7 @@ public class PhotoContents extends FlowLayout {
         } else {
             p = new PhotoContents.LayoutParams(multiChildSize, multiChildSize);
         }
-        if (!needLine) {
+        if (!newLine) {
             p.leftMargin = itemMargin;
         }
         p.bottomMargin = itemMargin;
