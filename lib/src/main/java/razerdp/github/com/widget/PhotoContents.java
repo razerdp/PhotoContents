@@ -38,6 +38,7 @@ public class PhotoContents extends FlowLayout {
     private int mItemCount;
     private boolean mDataChanged;
     private int itemMargin;
+    private int childRestWidth;
     private int multiChildSize;
 
     private int maxSingleWidth;
@@ -76,35 +77,38 @@ public class PhotoContents extends FlowLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-        int childRestWidth = widthSize - getPaddingLeft() - getPaddingRight();
         updateItemCount();
-        multiChildSize = childRestWidth / 3 - itemMargin * 2;
-        if (maxSingleWidth == 0) {
-            maxSingleWidth = childRestWidth * 2 / 3;
-            maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+        if (mAdapter == null || mItemCount == 0) {
+            resetContainer();
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            return;
         }
 
-        if (mDataChanged) {
-            if (mAdapter == null || mItemCount == 0) {
-                resetContainer();
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                return;
+        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+
+        int childRestWidth = widthSize - getPaddingLeft() - getPaddingRight();
+
+        if (mDataChanged || childRestWidth != this.childRestWidth) {
+            this.childRestWidth = childRestWidth;
+            multiChildSize = (childRestWidth - 2 * itemMargin) / 3;
+            if (maxSingleWidth == 0) {
+                maxSingleWidth = childRestWidth * 2 / 3;
+                maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
             }
+
             final int childCount = getChildCount();
-            final int oldChildCount = childCount;
-            if (oldChildCount > 0) {
-                if (oldChildCount == 1) {
+
+            if (childCount > 0) {
+                if (isSingle(childCount)) {
                     recycler.addSingleCachedView((ImageView) getChildAt(0));
                 } else {
-                    for (int i = 0; i < oldChildCount; i++) {
+                    for (int i = 0; i < childCount; i++) {
                         View v = getChildAt(i);
                         recycler.addCachedView(i, (ImageView) v);
                     }
                 }
             }
 
-            updateItemCount();
             //清除旧的view
             detachAllViewsFromParent();
 
@@ -114,20 +118,27 @@ public class PhotoContents extends FlowLayout {
             }
             mDataChanged = false;
         }
+
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     private void fillView(int childCount) {
-        if (childCount == 1) {
+        if (isSingle(childCount)) {
             fillSingleView();
-        } else if (childCount == 4) {
-            fillFourViews();
         } else {
             for (int i = 0; i < childCount; i++) {
                 final ImageView child = obtainView(i);
-                setupViewAndAddView(i, child, false, false);
+                setupViewAndAddView(i, child, isNewLine(i, childCount), false);
             }
         }
+    }
+
+    private boolean isSingle(int childCount) {
+        return childCount == 1;
+    }
+
+    private boolean isNewLine(int i, int childCount) {
+        return (childCount == 4 && i % 2 == 0) || (childCount > 4 && i % 3 == 0);
     }
 
     private void fillSingleView() {
@@ -137,17 +148,6 @@ public class PhotoContents extends FlowLayout {
         singleChild.setMaxHeight(maxSingleHeight);
         singleChild.setScaleType(ImageView.ScaleType.FIT_START);
         setupViewAndAddView(0, singleChild, false, true);
-    }
-
-    private void fillFourViews() {
-        for (int i = 0; i < 4; i++) {
-            final ImageView child = obtainView(i);
-            if (i == 2) {
-                setupViewAndAddView(i, child, true, false);
-            } else {
-                setupViewAndAddView(i, child, false, false);
-            }
-        }
     }
 
 
@@ -162,14 +162,9 @@ public class PhotoContents extends FlowLayout {
 
 
     private void setItemLayoutParams(ImageView v, boolean needLine, boolean isSingle) {
-        ViewGroup.LayoutParams p = v.getLayoutParams();
-        if (p == null || !(p instanceof LayoutParams)) {
-            LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle);
-            childLP.setNewLine(needLine);
-            v.setLayoutParams(childLP);
-        } else {
-            ((LayoutParams) p).setNewLine(needLine);
-        }
+        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, needLine);
+        childLP.setNewLine(needLine);
+        v.setLayoutParams(childLP);
     }
 
 
@@ -223,7 +218,7 @@ public class PhotoContents extends FlowLayout {
         return child;
     }
 
-    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle) {
+    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean needLine) {
         LayoutParams p;
         if (isSingle) {
 //            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -232,7 +227,9 @@ public class PhotoContents extends FlowLayout {
         } else {
             p = new PhotoContents.LayoutParams(multiChildSize, multiChildSize);
         }
-        p.rightMargin = itemMargin;
+        if (!needLine) {
+            p.leftMargin = itemMargin;
+        }
         p.bottomMargin = itemMargin;
         return p;
     }
