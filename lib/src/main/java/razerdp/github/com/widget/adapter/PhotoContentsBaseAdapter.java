@@ -13,6 +13,7 @@ import razerdp.github.com.widget.adapter.observer.PhotoBaseDataObserver;
 
 public abstract class PhotoContentsBaseAdapter {
 
+    private float singleAspectRatio = 16f / 9f;
 
     private PhotoAdapterObservable mObservable = new PhotoAdapterObservable();
 
@@ -37,4 +38,25 @@ public abstract class PhotoContentsBaseAdapter {
     public abstract void onBindData(int position, ImageView convertView);
 
     public abstract int getCount();
+
+    public int getMaxSingleWidth(int parentWidth) {
+        return parentWidth * 2 / 3;
+    }
+
+    public int getMaxSingleHeight(int parentWidth) {
+        return (int) (getMaxSingleWidth(parentWidth) / singleAspectRatio);
+    }
+
+    public int getLineItemCount() {
+        return 3;
+    }
+
+    public float getItemMarginInDp() {
+        return 4f;
+    }
+
+    public boolean isNewLine(int position, int itemCount) {
+        return (itemCount == 4 && position % 2 == 0) || (itemCount != 1 && itemCount != 4 && position % getLineItemCount() == 0);
+    }
+
 }
