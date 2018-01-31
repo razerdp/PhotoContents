@@ -43,6 +43,8 @@ public class PhotoContents extends FlowLayout {
 
     private int maxSingleWidth;
     private int maxSingleHeight;
+    //宽高比
+    private float singleAspectRatio = 16f / 9f;
 
     private int mSelectedPosition = INVALID_POSITION;
 
@@ -66,6 +68,7 @@ public class PhotoContents extends FlowLayout {
     }
 
     private void init(Context context) {
+        itemMargin = dp2Px(4f);
         recycler = new InnerRecyclerHelper();
         setOrientation(HORIZONTAL);
         setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
@@ -87,11 +90,11 @@ public class PhotoContents extends FlowLayout {
 
         if (mDataChanged || childRestWidth != this.childRestWidth) {
             this.childRestWidth = childRestWidth;
-            int lineItemCount = mAdapter.getLineItemCount();
-
-            multiChildSize = (childRestWidth - (lineItemCount - 1) * itemMargin) / lineItemCount;
-            maxSingleWidth = mAdapter.getMaxSingleWidth(childRestWidth);
-            maxSingleHeight = mAdapter.getMaxSingleHeight(childRestWidth);
+            multiChildSize = (childRestWidth - 2 * itemMargin) / 3;
+            if (maxSingleWidth == 0) {
+                maxSingleWidth = childRestWidth * 2 / 3;
+                maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+            }
 
             final int childCount = getChildCount();
 
@@ -125,13 +128,17 @@ public class PhotoContents extends FlowLayout {
         } else {
             for (int i = 0; i < childCount; i++) {
                 final ImageView child = obtainView(i);
-                setupViewAndAddView(i, child, mAdapter.isNewLine(i, childCount), false);
+                setupViewAndAddView(i, child, isNewLine(i, childCount), false);
             }
         }
     }
 
     private boolean isSingle(int childCount) {
         return childCount == 1;
+    }
+
+    private boolean isNewLine(int i, int childCount) {
+        return (childCount == 4 && i % 2 == 0) || (childCount > 4 && i % 3 == 0);
     }
 
     private void fillSingleView() {
@@ -154,9 +161,9 @@ public class PhotoContents extends FlowLayout {
     }
 
 
-    private void setItemLayoutParams(ImageView v, boolean newLine, boolean isSingle) {
-        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, newLine);
-        childLP.setNewLine(newLine);
+    private void setItemLayoutParams(ImageView v, boolean needLine, boolean isSingle) {
+        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, needLine);
+        childLP.setNewLine(needLine);
         v.setLayoutParams(childLP);
     }
 
@@ -171,7 +178,6 @@ public class PhotoContents extends FlowLayout {
         mAdapter = adapter;
         mAdapterObserver = new PhotoImageAdapterObserver();
         mAdapter.registerDataSetObserver(mAdapterObserver);
-        itemMargin = dp2Px(mAdapter.getItemMarginInDp());
         mDataChanged = true;
         requestLayout();
     }
@@ -212,16 +218,16 @@ public class PhotoContents extends FlowLayout {
         return child;
     }
 
-    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean newLine) {
+    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean needLine) {
         LayoutParams p;
         if (isSingle) {
 //            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            p = new PhotoContents.LayoutParams(maxSingleWidth, maxSingleHeight);
+            p = new LayoutParams(maxSingleWidth, maxSingleHeight);
 
         } else {
-            p = new PhotoContents.LayoutParams(multiChildSize, multiChildSize);
+            p = new LayoutParams(multiChildSize, multiChildSize);
         }
-        if (!newLine) {
+        if (!needLine) {
             p.leftMargin = itemMargin;
         }
         p.bottomMargin = itemMargin;
@@ -431,6 +437,33 @@ public class PhotoContents extends FlowLayout {
 
 
     //------------------------------------------getter/setter-----------------------------------------------
+
+    public float getSingleAspectRatio() {
+        return singleAspectRatio;
+    }
+
+    public void setSingleAspectRatio(float singleAspectRatio) {
+        if (this.singleAspectRatio != singleAspectRatio && maxSingleWidth != 0) {
+            this.maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
+        }
+        this.singleAspectRatio = singleAspectRatio;
+    }
+
+    public int getMaxSingleWidth() {
+        return maxSingleWidth;
+    }
+
+    public void setMaxSingleWidth(int maxSingleWidth) {
+        this.maxSingleWidth = maxSingleWidth;
+    }
+
+    public int getMaxSingleHeight() {
+        return maxSingleHeight;
+    }
+
+    public void setMaxSingleHeight(int maxSingleHeight) {
+        this.maxSingleHeight = maxSingleHeight;
+    }
 
     public OnSetUpChildLayoutParamsListener getOnSetUpChildLayoutParamsListener() {
         return onSetUpChildLayoutParamsListener;
