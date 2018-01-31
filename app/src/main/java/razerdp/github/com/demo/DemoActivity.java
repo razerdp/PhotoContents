@@ -23,6 +23,7 @@ import razerdp.github.com.demo.net.MomentsRequest;
 import razerdp.github.com.demo.net.base.SimpleResponseListener;
 import razerdp.github.com.demo.utils.BmobUrlUtil;
 import razerdp.github.com.demo.utils.ToolUtil;
+import razerdp.github.com.demo.utils.UIHelper;
 import razerdp.github.com.widget.PhotoContents;
 import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
 
@@ -129,6 +130,12 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             public InnerViewHolder(View itemView, int viewType) {
                 super(itemView, viewType);
                 imageContainer = (PhotoContents) itemView.findViewById(R.id.photocontents);
+                itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        UIHelper.ToastMessage("a");
+                    }
+                });
                 imageContainer.setmOnItemClickListener(this);
             }
 

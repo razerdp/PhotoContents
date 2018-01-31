@@ -32,7 +32,7 @@ dependencies {
     })
     testImplementation 'junit:junit:4.12'
     //flow layout
-    api 'org.apmem.tools:layouts:1.10@aar'
+    compile 'org.apmem.tools:layouts:1.10@aar'
 }
 
 

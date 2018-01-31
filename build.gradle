@@ -18,6 +18,7 @@ allprojects {
         jcenter()
         maven { url "https://jitpack.io" }
         maven { url "https://raw.github.com/bmob/bmob-android-sdk/master" }
+        google()
     }
 
     // 指定javadoc UTF-8格式

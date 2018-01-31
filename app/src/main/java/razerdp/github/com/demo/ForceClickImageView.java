@@ -4,19 +4,12 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
-import android.text.method.KeyListener;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ImageView;
-
-import static android.support.v7.widget.StaggeredGridLayoutManager.TAG;
 
 /**
  * Created by 大灯泡 on 2016/4/11.
@@ -79,9 +72,9 @@ public class ForceClickImageView extends ImageView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (mForegroundDrawable != null) {
-            if (getDrawable()!=null) {
+            if (getDrawable() != null) {
                 mForegroundDrawable.setBounds(getDrawable().getBounds());
-            }else {
+            } else {
                 mForegroundDrawable.setBounds(mCachedBounds);
             }
             mForegroundDrawable.draw(canvas);
