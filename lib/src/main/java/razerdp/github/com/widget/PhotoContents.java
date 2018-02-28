@@ -29,6 +29,7 @@ import razerdp.github.com.widget.util.SimpleObjectPool;
  */
 
 public class PhotoContents extends FlowLayout {
+    private static final String TAG = "PhotoContents";
 
     private final int INVALID_POSITION = -1;
 
@@ -47,6 +48,7 @@ public class PhotoContents extends FlowLayout {
     private float singleAspectRatio = 16f / 9f;
 
     private int mSelectedPosition = INVALID_POSITION;
+    private int mOldSelectedPosition = INVALID_POSITION;
 
     private Rect mTouchFrame;
 
@@ -318,6 +320,7 @@ public class PhotoContents extends FlowLayout {
     }
     //------------------------------------------TouchEvent-----------------------------------------------
 
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (!isEnabled()) {
@@ -327,11 +330,14 @@ public class PhotoContents extends FlowLayout {
         switch (actionMasked) {
             case MotionEvent.ACTION_DOWN: {
                 onTouchDown(event);
+                if (mSelectedPosition != INVALID_POSITION) return true;
                 break;
             }
 
             case MotionEvent.ACTION_UP: {
-                onTouchUp(event);
+                if (onTouchUp(event)) {
+                    return true;
+                }
                 break;
             }
 
@@ -340,7 +346,7 @@ public class PhotoContents extends FlowLayout {
                 break;
             }
         }
-        return true;
+        return super.onTouchEvent(event);
     }
 
     private void onTouchDown(MotionEvent event) {
@@ -365,7 +371,7 @@ public class PhotoContents extends FlowLayout {
         }
     }
 
-    private void onTouchUp(MotionEvent event) {
+    private boolean onTouchUp(MotionEvent event) {
         final int selectionPosition = mSelectedPosition;
         if (!mDataChanged) {
             if (checkPositionValided(selectionPosition)) {
@@ -382,11 +388,13 @@ public class PhotoContents extends FlowLayout {
                     }
                 };
                 postDelayed(mTouchReset, ViewConfiguration.getPressedStateDuration());
+                return true;
             }
         } else {
             if (checkPositionValided(selectionPosition))
                 updateChildPressState(selectionPosition, false);
         }
+        return false;
     }
 
 

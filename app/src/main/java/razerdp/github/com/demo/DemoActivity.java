@@ -18,11 +18,13 @@ import java.util.List;
 import cn.bmob.v3.exception.BmobException;
 import razerdp.github.com.demo.baseadapter.BaseRecyclerViewAdapter;
 import razerdp.github.com.demo.baseadapter.BaseRecyclerViewHolder;
+import razerdp.github.com.demo.baseadapter.OnRecyclerViewItemClickListener;
 import razerdp.github.com.demo.model.entity.MomentsInfo;
 import razerdp.github.com.demo.net.MomentsRequest;
 import razerdp.github.com.demo.net.base.SimpleResponseListener;
 import razerdp.github.com.demo.utils.BmobUrlUtil;
 import razerdp.github.com.demo.utils.ToolUtil;
+import razerdp.github.com.demo.utils.UIHelper;
 import razerdp.github.com.widget.PhotoContents;
 import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
 
@@ -52,6 +54,12 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
         xrecyclerview.setLayoutManager(layoutManager);
         xrecyclerview.setLoadingListener(this);
         adapter = new InnerAdapter(this, new ArrayList<MomentsInfo>());
+        adapter.setOnRecyclerViewItemClickListener(new OnRecyclerViewItemClickListener<MomentsInfo>() {
+            @Override
+            public void onItemClick(View v, int position, MomentsInfo data) {
+                UIHelper.ToastMessage("click item");
+            }
+        });
         xrecyclerview.setAdapter(adapter);
         xrecyclerview.refresh();
     }

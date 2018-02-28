@@ -42,6 +42,8 @@ public class MomentsRequest extends BaseRequestClient<List<MomentsInfo>> {
         query.include(MomentsFields.AUTHOR_USER + "," + MomentsFields.HOST);
         query.setLimit(count);
         query.setSkip(curPage * count);
+        query.setMaxCacheAge(3600000);
+        query.setCachePolicy(BmobQuery.CachePolicy.CACHE_ELSE_NETWORK);
         query.findObjects(new FindListener<MomentsInfo>() {
             @Override
             public void done(List<MomentsInfo> list, BmobException e) {
