@@ -2,12 +2,14 @@
 
 buildscript {
     repositories {
-        google()
+        maven { url "https://maven.google.com" }
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
-        classpath 'com.novoda:bintray-release:0.7.0'
+        classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
@@ -15,19 +17,10 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url "https://maven.google.com" }
         jcenter()
-        maven { url "https://jitpack.io" }
+        google()
         maven { url "https://raw.github.com/bmob/bmob-android-sdk/master" }
-    }
-
-    // 指定javadoc UTF-8格式
-    tasks.withType(Javadoc) {
-        options{
-            encoding 'UTF-8'
-            charSet 'UTF-8'
-            links "https://developer.android.google.cn/reference/"
-            addStringOption('Xdoclint:none', '-quiet')
-        }
     }
 }
 

@@ -20,6 +20,7 @@ import razerdp.github.com.demo.baseadapter.BaseRecyclerViewAdapter;
 import razerdp.github.com.demo.baseadapter.BaseRecyclerViewHolder;
 import razerdp.github.com.demo.baseadapter.OnRecyclerViewItemClickListener;
 import razerdp.github.com.demo.model.entity.MomentsInfo;
+import razerdp.github.com.demo.model.entity.PhotoInfo;
 import razerdp.github.com.demo.net.MomentsRequest;
 import razerdp.github.com.demo.net.base.SimpleResponseListener;
 import razerdp.github.com.demo.utils.BmobUrlUtil;
@@ -143,7 +144,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             @Override
             public void onBindData(MomentsInfo data, int position) {
                 //因为使用的是朋友圈的模拟数据，所以也会存在图片为空的情况，所以这里判空，实际上因为是多type，所以实际应用中并不需要这样处理
-                List<String> pics = data.getContent().getPics();
+                List<PhotoInfo> pics = data.getContent().getPics();
                 if (ToolUtil.isListEmpty(pics)) return;
                 if (adapter == null) {
                     adapter = new InnerContainerAdapter(getContext(), data.getContent().getPics());
@@ -163,9 +164,9 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
 
 
                 private Context context;
-                private List<String> datas;
+                private List<PhotoInfo> datas;
 
-                InnerContainerAdapter(Context context, List<String> datas) {
+                InnerContainerAdapter(Context context, List<PhotoInfo> datas) {
                     this.context = context;
                     this.datas = new ArrayList<>();
                     this.datas.addAll(datas);
@@ -182,7 +183,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
 
                 @Override
                 public void onBindData(int position, @NonNull ImageView convertView) {
-                    ImageLoadMnanger.INSTANCE.loadImage(convertView, BmobUrlUtil.getThumbImageUrl(datas.get(position), 50));
+                    ImageLoadMnanger.INSTANCE.loadImage(convertView, BmobUrlUtil.getThumbImageUrl(datas.get(position).getUrl(), 50));
                 }
 
                 @Override
@@ -190,7 +191,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                     return datas.size();
                 }
 
-                public void updateData(List<String> datas) {
+                public void updateData(List<PhotoInfo> datas) {
                     this.datas.clear();
                     this.datas.addAll(datas);
                     notifyDataChanged();

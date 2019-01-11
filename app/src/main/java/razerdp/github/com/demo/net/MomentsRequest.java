@@ -1,14 +1,17 @@
 package razerdp.github.com.demo.net;
 
+
 import java.util.List;
 
 import cn.bmob.v3.BmobQuery;
 import cn.bmob.v3.exception.BmobException;
 import cn.bmob.v3.listener.FindListener;
 import razerdp.github.com.demo.model.entity.MomentsInfo;
-import razerdp.github.com.demo.model.entity.MomentsInfo.MomentsFields;
 import razerdp.github.com.demo.net.base.BaseRequestClient;
 import razerdp.github.com.demo.utils.ToolUtil;
+
+import static razerdp.github.com.demo.model.entity.MomentsInfo.MomentsFields;
+
 
 /**
  * Created by 大灯泡 on 2016/10/27.
@@ -20,6 +23,8 @@ public class MomentsRequest extends BaseRequestClient<List<MomentsInfo>> {
 
     private int count = 10;
     private int curPage = 0;
+
+    private static boolean isFirstRequest = true;
 
     public MomentsRequest() {
     }
@@ -42,8 +47,7 @@ public class MomentsRequest extends BaseRequestClient<List<MomentsInfo>> {
         query.include(MomentsFields.AUTHOR_USER + "," + MomentsFields.HOST);
         query.setLimit(count);
         query.setSkip(curPage * count);
-        query.setMaxCacheAge(3600000);
-        query.setCachePolicy(BmobQuery.CachePolicy.CACHE_ELSE_NETWORK);
+        query.setCachePolicy(isFirstRequest? BmobQuery.CachePolicy.CACHE_ELSE_NETWORK: BmobQuery.CachePolicy.NETWORK_ELSE_CACHE);
         query.findObjects(new FindListener<MomentsInfo>() {
             @Override
             public void done(List<MomentsInfo> list, BmobException e) {

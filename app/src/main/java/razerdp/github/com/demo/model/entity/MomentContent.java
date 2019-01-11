@@ -21,6 +21,8 @@ public class MomentContent implements Serializable {
     private String text;
     //图片
     private List<String> pics;
+    //图片优化版
+    private List<PhotoInfo> pics2;
     //web
     private String webUrl;
     //webTitle
@@ -39,8 +41,16 @@ public class MomentContent implements Serializable {
         this.text = text;
     }
 
-    public List<String> getPics() {
-        return pics;
+    public List<PhotoInfo> getPics() {
+        if (ToolUtil.isListEmpty(pics2)) {
+            pics2 = new ArrayList<>();
+            if (!ToolUtil.isListEmpty(pics)) {
+                for (String pic : pics) {
+                    pics2.add(new PhotoInfo().setUrl(pic));
+                }
+            }
+        }
+        return pics2;
     }
 
     public void setPics(List<String> pics) {
@@ -71,6 +81,8 @@ public class MomentContent implements Serializable {
         this.webImage = webImage;
     }
 
+
+
     public MomentContent addText(String text) {
         this.text = text;
         return this;
@@ -82,6 +94,16 @@ public class MomentContent implements Serializable {
         }
         if (pics.size() < 9) {
             pics.add(pic);
+        }
+        return this;
+    }
+
+    public MomentContent addPicture(PhotoInfo info) {
+        if (pics2 == null) {
+            pics2 = new ArrayList<>();
+        }
+        if (pics2.size() < 9) {
+            pics2.add(info);
         }
         return this;
     }
@@ -110,6 +132,5 @@ public class MomentContent implements Serializable {
         return true;
 
     }
-
 
 }
