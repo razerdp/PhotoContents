@@ -5,118 +5,100 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.jcodecraeer.xrecyclerview.XRecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import cn.bmob.v3.exception.BmobException;
 import razerdp.github.com.demo.baseadapter.BaseRecyclerViewAdapter;
 import razerdp.github.com.demo.baseadapter.BaseRecyclerViewHolder;
-import razerdp.github.com.demo.baseadapter.OnRecyclerViewItemClickListener;
-import razerdp.github.com.demo.model.entity.MomentsInfo;
-import razerdp.github.com.demo.model.entity.PhotoInfo;
-import razerdp.github.com.demo.net.MomentsRequest;
-import razerdp.github.com.demo.net.base.SimpleResponseListener;
-import razerdp.github.com.demo.utils.BmobUrlUtil;
+import razerdp.github.com.demo.utils.RandomUtil;
 import razerdp.github.com.demo.utils.ToolUtil;
-import razerdp.github.com.demo.utils.UIHelper;
+import razerdp.github.com.demo.utils.rx.RxCall;
+import razerdp.github.com.demo.utils.rx.RxHelper;
 import razerdp.github.com.widget.PhotoContents;
-import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
+import razerdp.github.com.widget.layoutmanager.NineGridLayoutManager;
 
 public class DemoActivity extends AppCompatActivity implements XRecyclerView.LoadingListener {
 
     private XRecyclerView xrecyclerview;
     private InnerAdapter adapter;
 
-    private static final int REQUEST_REFRESH = 0x10;
-    private static final int REQUEST_LOADMORE = 0x11;
-
-    //request
-    private MomentsRequest momentsRequest;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        momentsRequest = new MomentsRequest();
         initView();
     }
 
     private void initView() {
-        xrecyclerview = (XRecyclerView) findViewById(R.id.xrecyclerview);
+        xrecyclerview = findViewById(R.id.xrecyclerview);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         xrecyclerview.setLayoutManager(layoutManager);
         xrecyclerview.setLoadingListener(this);
-        adapter = new InnerAdapter(this, new ArrayList<MomentsInfo>());
-        adapter.setOnRecyclerViewItemClickListener(new OnRecyclerViewItemClickListener<MomentsInfo>() {
-            @Override
-            public void onItemClick(View v, int position, MomentsInfo data) {
-                UIHelper.ToastMessage("click item");
-            }
-        });
+        xrecyclerview.setItemAnimator(null);
+        adapter = new InnerAdapter(this, new ArrayList<List<String>>());
         xrecyclerview.setAdapter(adapter);
         xrecyclerview.refresh();
     }
 
     @Override
     public void onRefresh() {
-        momentsRequest.setOnResponseListener(momentsRequestCallBack);
-        momentsRequest.setRequestType(REQUEST_REFRESH);
-        momentsRequest.setCurPage(0);
-        momentsRequest.execute();
-
+        RxHelper.delay(RandomUtil.randomInt(200, 1500), new RxCall<Long>() {
+            @Override
+            public void onCall(Long data) {
+                adapter.updateData(randomPhoto(RandomUtil.randomInt(15, 20)));
+                xrecyclerview.refreshComplete();
+            }
+        });
     }
 
     @Override
     public void onLoadMore() {
-        momentsRequest.setOnResponseListener(momentsRequestCallBack);
-        momentsRequest.setRequestType(REQUEST_LOADMORE);
-        momentsRequest.execute();
+        RxHelper.delay(RandomUtil.randomInt(200, 1500), new RxCall<Long>() {
+            @Override
+            public void onCall(Long data) {
+                adapter.addMore(randomPhoto(RandomUtil.randomInt(15, 20)));
+                xrecyclerview.refreshComplete();
+            }
+        });
     }
 
-    private SimpleResponseListener<List<MomentsInfo>> momentsRequestCallBack = new SimpleResponseListener<List<MomentsInfo>>() {
-        @Override
-        public void onSuccess(List<MomentsInfo> response, int requestType) {
-            switch (requestType) {
-                case REQUEST_REFRESH:
-                    xrecyclerview.refreshComplete();
-                    if (!ToolUtil.isListEmpty(response)) {
-                        adapter.updateData(response);
-                    }
-                    break;
-                case REQUEST_LOADMORE:
-                    xrecyclerview.loadMoreComplete();
-                    adapter.addMore(response);
-                    break;
+    public List<List<String>> randomPhoto(int count) {
+        List<List<String>> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            int photoCount = RandomUtil.randomInt(0, 9);
+            List<String> content = new ArrayList<>();
+            if (photoCount <= 0) {
+                result.add(content);
+            } else {
+                for (int j = 0; j < photoCount; j++) {
+                    content.add(TestServerData.getPicUrl());
+                }
+                result.add(content);
             }
         }
-
-        @Override
-        public void onError(BmobException e, int requestType) {
-            super.onError(e, requestType);
-            xrecyclerview.refreshComplete();
-            xrecyclerview.loadMoreComplete();
-        }
-    };
+        return result;
+    }
 
     //=============================================================InnerAdapter
 
-    private static class InnerAdapter extends BaseRecyclerViewAdapter<MomentsInfo> {
+    private static class InnerAdapter extends BaseRecyclerViewAdapter<List<String>> {
 
 
-        public InnerAdapter(@NonNull Context context, @NonNull List<MomentsInfo> datas) {
+        public InnerAdapter(@NonNull Context context, @NonNull List<List<String>> datas) {
             super(context, datas);
         }
 
         @Override
-        protected int getViewType(int position, @NonNull MomentsInfo data) {
+        protected int getViewType(int position, @NonNull List<String> data) {
             return 0;
         }
 
@@ -130,71 +112,81 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
             return new InnerViewHolder(inflatedView, viewType);
         }
 
-        private class InnerViewHolder extends BaseRecyclerViewHolder<MomentsInfo> implements PhotoContents.OnItemClickListener {
+        private class InnerViewHolder extends BaseRecyclerViewHolder<List<String>> {
 
             private PhotoContents imageContainer;
             private InnerContainerAdapter adapter;
+            private TextView mNoPhoto;
 
             public InnerViewHolder(View itemView, int viewType) {
                 super(itemView, viewType);
-                imageContainer = (PhotoContents) itemView.findViewById(R.id.photocontents);
-                imageContainer.setmOnItemClickListener(this);
+                imageContainer = itemView.findViewById(R.id.photocontents);
+                imageContainer.setLayoutManager(new NineGridLayoutManager(8));
+                mNoPhoto = itemView.findViewById(R.id.tv_no_photo);
             }
 
             @Override
-            public void onBindData(MomentsInfo data, int position) {
-                //因为使用的是朋友圈的模拟数据，所以也会存在图片为空的情况，所以这里判空，实际上因为是多type，所以实际应用中并不需要这样处理
-                List<PhotoInfo> pics = data.getContent().getPics();
-                if (ToolUtil.isListEmpty(pics)) return;
+            public void onBindData(List<String> data, int position) {
+                mNoPhoto.setVisibility(ToolUtil.isListEmpty(data) ? View.VISIBLE : View.GONE);
                 if (adapter == null) {
-                    adapter = new InnerContainerAdapter(getContext(), data.getContent().getPics());
+                    adapter = new InnerContainerAdapter(getContext(), data);
                     imageContainer.setAdapter(adapter);
                 } else {
-                    adapter.updateData(data.getContent().getPics());
+                    adapter.updateData(data);
                 }
             }
 
-            @Override
-            public void onItemClick(ImageView view, int position) {
-                Log.d("onItemClick", "position  >>>  " + position);
+            private class InnerContainerAdapter extends PhotoContents.Adapter<ViewHolder> {
 
-            }
+                private List<String> datas;
 
-            private class InnerContainerAdapter extends PhotoContentsBaseAdapter {
-
-
-                private Context context;
-                private List<PhotoInfo> datas;
-
-                InnerContainerAdapter(Context context, List<PhotoInfo> datas) {
-                    this.context = context;
+                InnerContainerAdapter(Context context, List<String> datas) {
                     this.datas = new ArrayList<>();
                     this.datas.addAll(datas);
                 }
 
-                @Override
-                public ImageView onCreateView(ImageView convertView, ViewGroup parent, int position) {
-                    if (convertView == null) {
-                        convertView = new ForceClickImageView(context);
-                        convertView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    }
-                    return convertView;
+
+                public void updateData(List<String> datas) {
+                    this.datas.clear();
+                    this.datas.addAll(datas);
+                    notifyDataSetChanged();
+                }
+
+                public void addMore(List<String> datas) {
+                    this.datas.addAll(datas);
+                    notifyDataSetChanged();
                 }
 
                 @Override
-                public void onBindData(int position, @NonNull ImageView convertView) {
-                    ImageLoadMnanger.INSTANCE.loadImage(convertView, BmobUrlUtil.getThumbImageUrl(datas.get(position).getUrl(), 50));
-                }
-
-                @Override
-                public int getCount() {
+                public int getItemCount() {
                     return datas.size();
                 }
 
-                public void updateData(List<PhotoInfo> datas) {
-                    this.datas.clear();
-                    this.datas.addAll(datas);
-                    notifyDataChanged();
+                @Override
+                public ViewHolder onCreateViewHolder(ViewGroup parent, int position) {
+                    return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_img, parent, false));
+                }
+
+                @Override
+                public void onBindViewHolder(ViewHolder viewHolder, int position) {
+                    if (getItemCount() == 1) {
+                        viewHolder.iv.setAdjustViewBounds(true);
+                        viewHolder.iv.setScaleType(ImageView.ScaleType.FIT_START);
+                    } else {
+                        viewHolder.iv.setAdjustViewBounds(false);
+                        viewHolder.iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    }
+                    ImageLoadManager.INSTANCE.loadImage(viewHolder.iv, datas.get(position));
+                }
+            }
+
+
+            class ViewHolder extends PhotoContents.ViewHolder {
+                ImageView iv;
+
+                ViewHolder(View rootView) {
+                    super(rootView);
+                    iv = findViewById(R.id.iv_img);
                 }
             }
         }

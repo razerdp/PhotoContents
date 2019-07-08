@@ -1,250 +1,459 @@
 package razerdp.github.com.widget;
 
 import android.content.Context;
-import android.graphics.Matrix;
+import android.database.Observable;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
+import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
-import android.util.SparseArray;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 
-import org.apmem.tools.layouts.FlowLayout;
-
-import java.util.LinkedList;
-import java.util.List;
-
-import razerdp.github.com.widget.adapter.PhotoContentsBaseAdapter;
-import razerdp.github.com.widget.adapter.observer.PhotoBaseDataObserver;
-import razerdp.github.com.widget.util.SimpleObjectPool;
+import razerdp.github.com.widget.util.SimplePool;
 
 
 /**
- * Created by 大灯泡 on 2016/11/9.
+ * Created by 大灯泡 on 2019/7/1
  * <p>
- * 适用于朋友圈的九宫格图片显示(用于listview等)
+ * Description：
  */
-
-public class PhotoContents extends FlowLayout {
+public class PhotoContents extends ViewGroup {
     private static final String TAG = "PhotoContents";
 
-    private final int INVALID_POSITION = -1;
+    PhotoContents.LayoutManager mLayout;
+    SimplePool<ViewHolder> mPools;
+    State mState;
+    Adapter mAdapter;
+    AdapterDataObserver mObserver;
 
-    private PhotoContentsBaseAdapter mAdapter;
-    private PhotoImageAdapterObserver mAdapterObserver = new PhotoImageAdapterObserver();
-    private InnerRecyclerHelper recycler;
-    private int mItemCount;
-    private boolean mDataChanged;
-    private int itemMargin;
-    private int childRestWidth;
-    private int multiChildSize;
-
-    private int maxSingleWidth;
-    private int maxSingleHeight;
-    //宽高比
-    private float singleAspectRatio = 16f / 9f;
-
-    private int mSelectedPosition = INVALID_POSITION;
-    private int mOldSelectedPosition = INVALID_POSITION;
-
-    private Rect mTouchFrame;
-
-    private Runnable mTouchReset;
 
     public PhotoContents(Context context) {
-        super(context);
-        init(context);
+        this(context, null);
     }
 
     public PhotoContents(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init(context);
+        this(context, attrs, 0);
     }
 
     public PhotoContents(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init();
     }
 
-    private void init(Context context) {
-        itemMargin = dp2Px(4f);
-        recycler = new InnerRecyclerHelper();
-        setOrientation(HORIZONTAL);
-        setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+    private void init() {
+        mObserver = new PhotoContentsObserver();
+        mPools = new SimplePool<>(9);
+        mState = new State();
     }
-
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        updateItemCount();
-        if (mAdapter == null || mItemCount == 0) {
-            resetContainer();
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (mLayout == null) {
+            defaultOnMeasure(widthMeasureSpec, heightMeasureSpec);
+        } else {
+            preventRequestLayout();
+            mState.itemCount = mAdapter.getItemCount();
+
+            if (mState.itemCount == 0 || mAdapter == null) {
+                doRecycler();
+                defaultOnMeasure(widthMeasureSpec, heightMeasureSpec);
+                resumeRequestLayout();
+                return;
+            }
+            mLayout.onMeasure(mPools, mState, widthMeasureSpec, heightMeasureSpec);
+            resumeRequestLayout();
+        }
+    }
+
+    void defaultOnMeasure(int widthSpec, int heightSpec) {
+        int width = LayoutManager.chooseSize(widthSpec, this.getPaddingLeft() + this.getPaddingRight(), ViewCompat.getMinimumWidth(this));
+        int height = LayoutManager.chooseSize(heightSpec, this.getPaddingTop() + this.getPaddingBottom(), ViewCompat.getMinimumHeight(this));
+        setMeasuredDimension(width, height);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        preventRequestLayout();
+        if (mAdapter == null) {
+            doRecycler();
+            resumeRequestLayout();
             return;
         }
-
-        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-
-        int childRestWidth = widthSize - getPaddingLeft() - getPaddingRight();
-
-        if (mDataChanged || childRestWidth != this.childRestWidth) {
-            this.childRestWidth = childRestWidth;
-            multiChildSize = (childRestWidth - 2 * itemMargin) / 3;
-            if (maxSingleWidth == 0) {
-                maxSingleWidth = childRestWidth * 2 / 3;
-                maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
-            }
-
-            final int childCount = getChildCount();
-
-            if (childCount > 0) {
-                if (isSingle(childCount)) {
-                    recycler.addSingleCachedView((ImageView) getChildAt(0));
-                } else {
-                    for (int i = 0; i < childCount; i++) {
-                        View v = getChildAt(i);
-                        recycler.addCachedView(i, (ImageView) v);
-                    }
-                }
-            }
-
-            //清除旧的view
-            detachAllViewsFromParent();
-
-            int newChildCount = mItemCount;
-            if (newChildCount > 0) {
-                fillView(newChildCount);
-            }
-            mDataChanged = false;
+        if (mLayout == null) {
+            resumeRequestLayout();
+            return;
         }
-
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        mState.setBounds(getPaddingLeft(), getPaddingTop(), r - getPaddingRight(), b - getPaddingBottom());
+        mLayout.onLayoutChildren(mPools, mState);
+        mState.dataChanged = false;
+        resumeRequestLayout();
     }
 
-    private void fillView(int childCount) {
-        if (isSingle(childCount)) {
-            fillSingleView();
-        } else {
-            for (int i = 0; i < childCount; i++) {
-                final ImageView child = obtainView(i);
-                setupViewAndAddView(i, child, isNewLine(i, childCount), false);
-            }
+    private void doRecycler() {
+        final int childCount = getChildCount();
+        if (childCount <= 0) return;
+        for (int i = 0; i < childCount; i++) {
+            View v = getChildAt(i);
+            ViewGroup.LayoutParams p = v.getLayoutParams();
+            if (!checkLayoutParams(p)) continue;
+            ViewHolder holder = ((LayoutParams) p).mViewHolder;
+            if (holder == null) continue;
+            mPools.release(holder);
+            holder.onRecycled();
         }
-    }
-
-    private boolean isSingle(int childCount) {
-        return childCount == 1;
-    }
-
-    private boolean isNewLine(int i, int childCount) {
-        return (childCount == 4 && i % 2 == 0) || (childCount > 4 && i % 3 == 0);
-    }
-
-    private void fillSingleView() {
-        final ImageView singleChild = obtainView(0);
-        singleChild.setAdjustViewBounds(true);
-        singleChild.setMaxWidth(maxSingleWidth);
-        singleChild.setMaxHeight(maxSingleHeight);
-        singleChild.setScaleType(ImageView.ScaleType.FIT_START);
-        setupViewAndAddView(0, singleChild, false, true);
+        detachAllViewsFromParent();
     }
 
 
-    private void setupViewAndAddView(int position, ImageView v, boolean newLine, boolean isSingle) {
-        setItemLayoutParams(v, newLine, isSingle);
-        if (onSetUpChildLayoutParamsListener != null) {
-            onSetUpChildLayoutParamsListener.onSetUpParams(v, (LayoutParams) v.getLayoutParams(), position, isSingle);
-        }
-        mAdapter.onBindData(position, v);
-        addViewInLayout(v, position, v.getLayoutParams(), true);
+    protected boolean checkLayoutParams(ViewGroup.LayoutParams p) {
+        return p instanceof LayoutParams;
     }
 
-
-    private void setItemLayoutParams(ImageView v, boolean needLine, boolean isSingle) {
-        LayoutParams childLP = generateDefaultMultiLayoutParams(isSingle, needLine);
-        childLP.setNewLine(needLine);
-        v.setLayoutParams(childLP);
-    }
-
-
-    public void setAdapter(PhotoContentsBaseAdapter adapter) {
-        if (mAdapter != null && mAdapterObserver != null) {
-            mAdapter.unregisterDataSetObserver(mAdapterObserver);
-        }
-
-        resetContainer();
-
-        mAdapter = adapter;
-        mAdapterObserver = new PhotoImageAdapterObserver();
-        mAdapter.registerDataSetObserver(mAdapterObserver);
-        mDataChanged = true;
-        requestLayout();
-    }
-
-    public PhotoContentsBaseAdapter getAdapter() {
+    public Adapter getAdapter() {
         return mAdapter;
     }
 
-
-    private void resetContainer() {
-        recycler.clearCache();
-        removeAllViewsInLayout();
-        invalidate();
-    }
-
-    private void updateItemCount() {
-        mItemCount = mAdapter == null ? 0 : mAdapter.getCount();
-    }
-
-    private ImageView obtainView(int position) {
-
-        ImageView cachedView;
-        ImageView child;
-        if (mItemCount == 1) {
-            cachedView = recycler.getSingleCachedView();
-        } else {
-            cachedView = recycler.getCachedView(position);
+    public PhotoContents setAdapter(Adapter adapter) {
+        if (this.mAdapter == adapter) return this;
+        if (this.mAdapter != null) {
+            this.mAdapter.unregisterAdapterDataObserver(mObserver);
+            this.mAdapter.onDetachedFromPhotoContents(this);
         }
-        child = mAdapter.onCreateView(cachedView, this, position);
+        doRecycler();
+        mPools.clearPool(new SimplePool.OnClearListener<ViewHolder>() {
+            @Override
+            public void onClear(ViewHolder cached) {
+                cached.onDead();
+            }
+        });
 
-        if (child != cachedView) {
-            if (mItemCount == 1) {
-                recycler.addSingleCachedView(child);
-            } else {
-                recycler.addCachedView(position, child);
+        this.mAdapter = adapter;
+        if (adapter != null) {
+            adapter.registerAdapterDataObserver(mObserver);
+            adapter.onAttachedToPhotoContents(this);
+        }
+        mState.dataChanged = true;
+        return this;
+    }
+
+    public PhotoContents setLayoutManager(LayoutManager manager) {
+        if (this.mLayout != null) {
+            doRecycler();
+            this.mLayout = null;
+        }
+        this.mLayout = manager;
+        mLayout.bindPhotoContents(this);
+        requestLayout();
+
+        return this;
+    }
+
+    protected LayoutParams generateDefaultLayoutParams() {
+        return new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    public SimplePool<ViewHolder> getRecyclerPools() {
+        return mPools;
+    }
+
+    private void preventRequestLayout() {
+        mState.preventRequestLayout++;
+    }
+
+    private void resumeRequestLayout() {
+        mState.preventRequestLayout--;
+        if (mState.preventRequestLayout < 0) {
+            mState.preventRequestLayout = 0;
+        }
+    }
+
+    @Override
+    public void requestLayout() {
+//        if (mState == null || mState.preventRequestLayout != 0) {
+//            NELog.i(TAG,"preventRequest");
+//            return;
+//        }
+        super.requestLayout();
+    }
+
+    public State getState() {
+        return mState;
+    }
+
+    public abstract static class LayoutManager {
+
+        PhotoContents mPhotoContents;
+
+        public abstract void onMeasure(@NonNull SimplePool<ViewHolder> pool, @NonNull State state, int widthSpec, int heightSpec);
+
+        public abstract void onLayoutChildren(@NonNull SimplePool<ViewHolder> pool, @NonNull State state);
+
+        public static int chooseSize(int spec, int desired, int min) {
+            int mode = MeasureSpec.getMode(spec);
+            int size = MeasureSpec.getSize(spec);
+            switch (mode) {
+                case MeasureSpec.AT_MOST:
+                    return Math.min(size, Math.max(desired, min));
+                case MeasureSpec.EXACTLY:
+                    return size;
+                case MeasureSpec.UNSPECIFIED:
+                default:
+                    return Math.max(desired, min);
             }
         }
-        return child;
-    }
 
-    protected LayoutParams generateDefaultMultiLayoutParams(boolean isSingle, boolean needLine) {
-        LayoutParams p;
-        if (isSingle) {
-//            p = new PhotoContents.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            p = new PhotoContents.LayoutParams(maxSingleWidth, maxSingleHeight);
-
-        } else {
-            p = new PhotoContents.LayoutParams(multiChildSize, multiChildSize);
+        protected void setMeasuredDimension(int widthSize, int heightSize) {
+            this.mPhotoContents.setMeasuredDimension(widthSize, heightSize);
         }
-        if (!needLine) {
-            p.leftMargin = itemMargin;
+
+        private void bindPhotoContents(PhotoContents mPhotoContents) {
+            boolean call = this.mPhotoContents != mPhotoContents;
+            this.mPhotoContents = mPhotoContents;
+            if (call) {
+                onAttachedPhotoContents(mPhotoContents);
+            }
         }
-        p.bottomMargin = itemMargin;
-        return p;
+
+        public void requestLayout() {
+            this.mPhotoContents.requestLayout();
+        }
+
+        public PhotoContents getParent() {
+            return mPhotoContents;
+        }
+
+        public int getChildCount() {
+            return mPhotoContents.getChildCount();
+        }
+
+        public void addView(View child) {
+            this.addView(child, -1);
+        }
+
+        public void addView(View child, int index) {
+            this.addView(child, index, null);
+        }
+
+
+        public void addView(View child, int index, LayoutParams p) {
+            this.addView(child, index, p, false);
+        }
+
+        public void addView(View child, int index, LayoutParams p, boolean preventRequestLayout) {
+            if (preventRequestLayout) {
+                mPhotoContents.addViewInLayout(child, index, p, true);
+            } else {
+                mPhotoContents.addView(child, index, p);
+            }
+        }
+
+
+        public void removeViewAt(int index) {
+            View child = this.getChildAt(index);
+            if (child != null) {
+                mPhotoContents.removeViewAt(index);
+            }
+
+        }
+
+        public void removeAllViews() {
+            int childCount = mPhotoContents.getChildCount();
+            for (int i = childCount - 1; i >= 0; --i) {
+                mPhotoContents.removeViewAt(i);
+            }
+        }
+
+        public void detachView(@NonNull View child) {
+            mPhotoContents.detachViewFromParent(child);
+        }
+
+        public void detachViewAt(int index) {
+            mPhotoContents.detachViewsFromParent(index, 1);
+        }
+
+        public LayoutParams generateLayoutParams(ViewGroup.LayoutParams lp) {
+            if (lp instanceof LayoutParams) {
+                return new LayoutParams((LayoutParams) lp);
+            } else {
+                return lp instanceof MarginLayoutParams ? new LayoutParams((MarginLayoutParams) lp) : new LayoutParams(lp);
+            }
+        }
+
+        public View getChildAt(int index) {
+            return mPhotoContents.getChildAt(index);
+        }
+
+        public void onAttachedPhotoContents(PhotoContents PhotoContents) {
+
+        }
+
+        protected ViewHolder obtainViewHolder(int position) {
+            ViewHolder result = mPhotoContents.mPools.acquire();
+            if (result == null) {
+                result = mPhotoContents.getAdapter().createViewHolder(mPhotoContents, position);
+            }
+            ViewGroup.LayoutParams lp = result.rootView.getLayoutParams();
+            LayoutParams p;
+
+            if (lp == null) {
+                p = generateDefaultLayoutParams();
+                result.rootView.setLayoutParams(p);
+            } else if (!checkLayoutParams(lp)) {
+                p = generateLayoutParams(lp);
+                result.rootView.setLayoutParams(p);
+            } else {
+                p = (LayoutParams) lp;
+            }
+
+            result.position = position;
+            p.mViewHolder = result;
+
+            return result;
+        }
+
+        public LayoutParams generateDefaultLayoutParams() {
+            return mPhotoContents.generateDefaultLayoutParams();
+        }
+
+        protected boolean checkLayoutParams(ViewGroup.LayoutParams p) {
+            return mPhotoContents.checkLayoutParams(p);
+        }
+
+        protected void doRecycler() {
+            mPhotoContents.doRecycler();
+        }
+
+        protected ViewHolder findViewHolderForView(View v) {
+            if (!checkLayoutParams(v.getLayoutParams())) {
+                throw new IllegalArgumentException("View的layoutparams不正确");
+            }
+
+            return ((LayoutParams) v.getLayoutParams()).mViewHolder;
+
+        }
     }
 
 
-    private int dp2Px(float dp) {
-        return (int) (dp * getContext().getResources().getDisplayMetrics().density + 0.5f);
+    public abstract static class AdapterDataObserver {
+        public void onChanged() {
+
+        }
     }
 
-    public static class LayoutParams extends FlowLayout.LayoutParams {
+    private class PhotoContentsObserver extends AdapterDataObserver {
+        @Override
+        public void onChanged() {
+            mState.reset();
+            doRecycler();
+            requestLayout();
+        }
+    }
+
+    static class AdapterDataObservable extends Observable<AdapterDataObserver> {
+        AdapterDataObservable() {
+        }
+
+        public boolean hasObservers() {
+            return !this.mObservers.isEmpty();
+        }
+
+        public void notifyChanged() {
+            for (int i = this.mObservers.size() - 1; i >= 0; --i) {
+                this.mObservers.get(i).onChanged();
+            }
+        }
+    }
+
+    public abstract static class Adapter<VH extends ViewHolder> {
+        private final AdapterDataObservable mObservable = new AdapterDataObservable();
+
+        public void registerAdapterDataObserver(@NonNull AdapterDataObserver observer) {
+            this.mObservable.registerObserver(observer);
+        }
+
+        public void unregisterAdapterDataObserver(@NonNull AdapterDataObserver observer) {
+            this.mObservable.unregisterObserver(observer);
+        }
+
+        public void onViewRecycled(@NonNull VH holder) {
+        }
+
+
+        public void onAttachedToPhotoContents(@NonNull PhotoContents PhotoContents) {
+        }
+
+        public void onDetachedFromPhotoContents(@NonNull PhotoContents PhotoContents) {
+        }
+
+        public abstract int getItemCount();
+
+        public abstract VH onCreateViewHolder(ViewGroup parent, int position);
+
+        public abstract void onBindViewHolder(VH viewHolder, int position);
+
+        public final VH createViewHolder(ViewGroup parent, int position) {
+            VH holder = onCreateViewHolder(parent, position);
+            if (holder.rootView == null) {
+                throw new NullPointerException("ViewHolder的rootView不能为空");
+            }
+            if (holder.rootView.getParent() != null) {
+                throw new IllegalArgumentException("ViewHolder的rootView不能有Parent");
+            }
+            return holder;
+        }
+
+        public final void bindViewHolder(@NonNull VH viewHolder, int position) {
+            viewHolder.position = position;
+            onBindViewHolder(viewHolder, position);
+        }
+
+
+        public final void notifyDataSetChanged() {
+            this.mObservable.notifyChanged();
+        }
+    }
+
+    public abstract static class ViewHolder {
+        public final View rootView;
+        int position;
+
+        public ViewHolder(View rootView) {
+            this.rootView = rootView;
+        }
+
+        public int getPosition() {
+            return position;
+        }
+
+        public void onRecycled() {
+
+        }
+
+        public void onDead() {
+
+        }
+
+        public final <V extends View> V findViewById(int resid) {
+            if (resid > 0 && rootView != null) {
+                return rootView.findViewById(resid);
+            }
+            return null;
+        }
+    }
+
+    public static class LayoutParams extends MarginLayoutParams {
+        ViewHolder mViewHolder;
+
+        public LayoutParams(Context c, AttributeSet attrs) {
+            super(c, attrs);
+        }
 
         public LayoutParams(int width, int height) {
-            this(new ViewGroup.LayoutParams(width, height));
+            super(width, height);
+        }
+
+        public LayoutParams(MarginLayoutParams source) {
+            super(source);
         }
 
         public LayoutParams(ViewGroup.LayoutParams source) {
@@ -252,317 +461,47 @@ public class PhotoContents extends FlowLayout {
         }
     }
 
+    public static class State {
 
-    private class InnerRecyclerHelper {
-        private SparseArray<ImageView> mCachedViews;
-        private SimpleObjectPool<ImageView> mSingleCachedViews;
+        int preventRequestLayout;
+        boolean dataChanged;
+        int itemCount;
+        Rect rect = new Rect();
+        Rect tempRect = new Rect();
 
-        InnerRecyclerHelper() {
-            mCachedViews = new SparseArray<>();
-            mSingleCachedViews = new SimpleObjectPool<>(9);
+        void setBounds(int l, int t, int r, int b) {
+            rect.set(l, t, r, b);
         }
 
-        ImageView getCachedView(int position) {
-            final ImageView imageView = mCachedViews.get(position);
-            if (imageView != null) {
-                mCachedViews.remove(position);
-                return imageView;
-            }
-            return null;
+        public boolean isDataChanged() {
+            return dataChanged;
         }
 
-        ImageView getSingleCachedView() {
-            return mSingleCachedViews.get();
+        public int getItemCount() {
+            return itemCount;
         }
 
-        void addCachedView(int position, ImageView view) {
-            mCachedViews.put(position, view);
+        public Rect getBounds() {
+            tempRect.set(rect);
+            return tempRect;
         }
 
-        void addSingleCachedView(ImageView imageView) {
-            mSingleCachedViews.put(imageView);
-        }
-
-        void clearCache() {
-            mCachedViews.clear();
-            mSingleCachedViews.clearPool();
-        }
-
-    }
-
-    private class PhotoImageAdapterObserver extends PhotoBaseDataObserver {
-
-        @Override
-        public void onChanged() {
-            super.onChanged();
-            updateItemCount();
-            mDataChanged = true;
-            requestLayout();
+        void reset() {
+            dataChanged = true;
+            itemCount = 0;
+            rect.setEmpty();
+            tempRect.setEmpty();
         }
 
         @Override
-        public void onInvalidated() {
-            super.onInvalidated();
-            invalidate();
+        public String toString() {
+            return "State{" +
+                    "preventRequestLayout=" + preventRequestLayout +
+                    ", dataChanged=" + dataChanged +
+                    ", itemCount=" + itemCount +
+                    ", rect=" + rect +
+                    ", tempRect=" + tempRect +
+                    '}';
         }
-    }
-
-
-    public boolean performItemClick(ImageView view, int position) {
-        final boolean result;
-        if (mOnItemClickListener != null) {
-            mOnItemClickListener.onItemClick(view, position);
-            result = true;
-        } else {
-            result = false;
-        }
-        return result;
-    }
-    //------------------------------------------TouchEvent-----------------------------------------------
-
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (!isEnabled()) {
-            return isClickable() || isLongClickable();
-        }
-        final int actionMasked = event.getActionMasked();
-        switch (actionMasked) {
-            case MotionEvent.ACTION_DOWN: {
-                onTouchDown(event);
-                if (mSelectedPosition != INVALID_POSITION) return true;
-                break;
-            }
-
-            case MotionEvent.ACTION_UP: {
-                if (onTouchUp(event)) {
-                    return true;
-                }
-                break;
-            }
-
-            case MotionEvent.ACTION_CANCEL: {
-                setPressed(false);
-                break;
-            }
-        }
-        return super.onTouchEvent(event);
-    }
-
-    private void onTouchDown(MotionEvent event) {
-        final int x = (int) event.getX();
-        final int y = (int) event.getY();
-
-        if (!mDataChanged) {
-            final int selectionPosition = pointToPosition(x, y);
-            if (checkPositionValided(selectionPosition)) {
-                View view = getChildAt(selectionPosition);
-                if (view != null && view.isEnabled()) {
-                    updateChildPressState(selectionPosition, true);
-                    this.mSelectedPosition = selectionPosition;
-                } else {
-                    this.mSelectedPosition = INVALID_POSITION;
-                }
-            } else {
-                this.mSelectedPosition = INVALID_POSITION;
-            }
-        } else {
-            this.mSelectedPosition = INVALID_POSITION;
-        }
-    }
-
-    private boolean onTouchUp(MotionEvent event) {
-        final int selectionPosition = mSelectedPosition;
-        if (!mDataChanged) {
-            if (checkPositionValided(selectionPosition)) {
-                final View child = getChildAt(selectionPosition);
-                updateChildPressState(selectionPosition, true);
-                performItemClick((ImageView) child, selectionPosition);
-                if (mTouchReset != null) {
-                    removeCallbacks(mTouchReset);
-                }
-                mTouchReset = new Runnable() {
-                    @Override
-                    public void run() {
-                        child.setPressed(false);
-                    }
-                };
-                postDelayed(mTouchReset, ViewConfiguration.getPressedStateDuration());
-                return true;
-            }
-        } else {
-            if (checkPositionValided(selectionPosition))
-                updateChildPressState(selectionPosition, false);
-        }
-        return false;
-    }
-
-
-    private boolean checkPositionValided(int position) {
-        boolean result = true;
-        final int childCount = getChildCount();
-        if (mDataChanged) {
-            result = false;
-        }
-        if (position <= INVALID_POSITION || position > childCount - 1) {
-            result = false;
-        }
-        return result;
-    }
-
-    public void updateChildPressState(int position, boolean press) {
-        if (checkPositionValided(position)) {
-            final View child = getChildAt(position);
-            if (press) {
-                child.requestFocus();
-            }
-            child.setPressed(press);
-        }
-    }
-
-
-    /**
-     * 捕获点击的view并返回其position
-     *
-     * @param x
-     * @param y
-     * @return
-     */
-    public int pointToPosition(int x, int y) {
-        if (mTouchFrame == null) mTouchFrame = new Rect();
-        final int childCount = getChildCount();
-        for (int i = childCount - 1; i >= 0; i--) {
-            final View child = getChildAt(i);
-            if (child != null && child.getVisibility() == VISIBLE) {
-                child.getHitRect(mTouchFrame);
-                if (mTouchFrame.contains(x, y)) {
-                    return i;
-                }
-            }
-        }
-        return INVALID_POSITION;
-    }
-
-
-    //------------------------------------------getter/setter-----------------------------------------------
-
-    public float getSingleAspectRatio() {
-        return singleAspectRatio;
-    }
-
-    public void setSingleAspectRatio(float singleAspectRatio) {
-        if (this.singleAspectRatio != singleAspectRatio && maxSingleWidth != 0) {
-            this.maxSingleHeight = (int) (maxSingleWidth / singleAspectRatio);
-        }
-        this.singleAspectRatio = singleAspectRatio;
-    }
-
-    public int getMaxSingleWidth() {
-        return maxSingleWidth;
-    }
-
-    public void setMaxSingleWidth(int maxSingleWidth) {
-        this.maxSingleWidth = maxSingleWidth;
-    }
-
-    public int getMaxSingleHeight() {
-        return maxSingleHeight;
-    }
-
-    public void setMaxSingleHeight(int maxSingleHeight) {
-        this.maxSingleHeight = maxSingleHeight;
-    }
-
-    public OnSetUpChildLayoutParamsListener getOnSetUpChildLayoutParamsListener() {
-        return onSetUpChildLayoutParamsListener;
-    }
-
-    public void setOnSetUpChildLayoutParamsListener(OnSetUpChildLayoutParamsListener onSetUpChildLayoutParamsListener) {
-        this.onSetUpChildLayoutParamsListener = onSetUpChildLayoutParamsListener;
-    }
-
-    public OnItemClickListener getmOnItemClickListener() {
-        return mOnItemClickListener;
-    }
-
-    public void setmOnItemClickListener(OnItemClickListener mOnItemClickListener) {
-        this.mOnItemClickListener = mOnItemClickListener;
-    }
-
-    public List<Rect> getContentViewsGlobalVisibleRects() {
-        final int childCount = getChildCount();
-        if (childCount <= 0) return null;
-        List<Rect> viewRects = new LinkedList<>();
-        for (int i = 0; i < childCount; i++) {
-            View v = getChildAt(i);
-            if (v != null) {
-                Rect rect = new Rect();
-                v.getGlobalVisibleRect(rect);
-                viewRects.add(rect);
-            }
-        }
-        return viewRects;
-    }
-
-    public List<Rect> getContentViewsDrawableRects() {
-        final int childCount = getChildCount();
-        if (childCount <= 0) return null;
-        List<Rect> viewRects = new LinkedList<>();
-        for (int i = 0; i < childCount; i++) {
-            View v = getChildAt(i);
-            if (v != null) {
-                Rect rect = getDrawableBoundsInView((ImageView) v);
-                viewRects.add(rect);
-            }
-        }
-        return viewRects;
-    }
-
-    public List<Matrix> getContentViewsDrawableMatrixList() {
-        final int childCount = getChildCount();
-        if (childCount <= 0) return null;
-        List<Matrix> viewMatrixs = new LinkedList<>();
-        for (int i = 0; i < childCount; i++) {
-            View v = getChildAt(i);
-            if (v instanceof ImageView && ((ImageView) v).getDrawable() != null) {
-                Matrix matrix = ((ImageView) v).getImageMatrix();
-                viewMatrixs.add(matrix);
-            }
-        }
-        return viewMatrixs;
-    }
-
-    private Rect getDrawableBoundsInView(ImageView iv) {
-        if (iv == null || iv.getDrawable() == null) return null;
-        Drawable d = iv.getDrawable();
-        Rect result = new Rect();
-        iv.getGlobalVisibleRect(result);
-        Rect tDrawableRect = d.getBounds();
-        Matrix drawableMatrix = iv.getImageMatrix();
-
-        float[] values = new float[9];
-        if (drawableMatrix != null) {
-            drawableMatrix.getValues(values);
-        }
-
-        result.left = result.left + (int) values[Matrix.MTRANS_X];
-        result.top = result.top + (int) values[Matrix.MTRANS_Y];
-        result.right = (int) (result.left + tDrawableRect.width() * (values[Matrix.MSCALE_X] == 0 ? 1.0f : values[Matrix.MSCALE_X]));
-        result.bottom = (int) (result.top + tDrawableRect.height() * (values[Matrix.MSCALE_Y] == 0 ? 1.0f : values[Matrix.MSCALE_Y]));
-
-        return result;
-    }
-
-    //------------------------------------------Interface-----------------------------------------------
-    private OnSetUpChildLayoutParamsListener onSetUpChildLayoutParamsListener;
-
-    public interface OnSetUpChildLayoutParamsListener {
-        void onSetUpParams(ImageView child, LayoutParams p, int position, boolean isSingle);
-    }
-
-    private OnItemClickListener mOnItemClickListener;
-
-    public interface OnItemClickListener {
-        void onItemClick(ImageView view, int position);
     }
 }

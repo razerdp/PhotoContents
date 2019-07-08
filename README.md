@@ -2,7 +2,6 @@
 
 [ ![Download](https://api.bintray.com/packages/razerdp/maven/PhotoContents/images/download.svg) ](https://bintray.com/razerdp/maven/PhotoContents/_latestVersion)
 
-本控件继承于[FlowLayout](https://github.com/ApmeM/android-flowlayout)
 
 针对AbsListView或者RecyclerView来进行View的二级缓存，采取的是adapter模式以及观察者。
 
@@ -39,6 +38,8 @@ Add the dependency
 
 ### Update log
 
+ - 2019/07/08
+    + 重构
  - 2017/02/20
     + 修复点击后点击空白页面响应了之前的点击事件的问题
 
