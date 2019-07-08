@@ -41,7 +41,7 @@ def moduleName = 'PhotoContents'
 
 
 group = "com.github.razerdp"
-version = "1.4.6"
+version = "2.0.0"
 
 install {
     repositories.mavenInstaller {
