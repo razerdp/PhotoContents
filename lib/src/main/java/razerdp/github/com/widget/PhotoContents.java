@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Observable;
 import android.graphics.Rect;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.view.View;
@@ -98,7 +99,10 @@ public class PhotoContents extends ViewGroup {
             if (!checkLayoutParams(p)) continue;
             ViewHolder holder = ((LayoutParams) p).mViewHolder;
             if (holder == null) continue;
-            mPools.release(holder);
+            boolean intercept = mLayout != null && mLayout.onInterceptRecycle(childCount, i, holder);
+            if (!intercept) {
+                mPools.release(holder);
+            }
             holder.onRecycled();
         }
         detachAllViewsFromParent();
@@ -178,6 +182,15 @@ public class PhotoContents extends ViewGroup {
 
     public State getState() {
         return mState;
+    }
+
+    @Nullable
+    public ViewHolder findViewHolderForPosition(int position) {
+        View v = getChildAt(position);
+        if (v == null) return null;
+        if (!checkLayoutParams(v.getLayoutParams())) return null;
+        return ((LayoutParams) v.getLayoutParams()).mViewHolder;
+
     }
 
     public abstract static class LayoutManager {
@@ -287,28 +300,39 @@ public class PhotoContents extends ViewGroup {
 
         }
 
+        public boolean onInterceptRecycle(int childCount, int position, @NonNull ViewHolder holder) {
+            return false;
+        }
+
         protected ViewHolder obtainViewHolder(int position) {
             ViewHolder result = mPhotoContents.mPools.acquire();
             if (result == null) {
-                result = mPhotoContents.getAdapter().createViewHolder(mPhotoContents, position);
+                result = createFromAdapter(position);
             }
-            ViewGroup.LayoutParams lp = result.rootView.getLayoutParams();
+            onPrepareViewHolder(result, position);
+            return result;
+        }
+
+        protected ViewHolder createFromAdapter(int position) {
+            return mPhotoContents.getAdapter().createViewHolder(mPhotoContents, position);
+        }
+
+        protected void onPrepareViewHolder(ViewHolder holder, int position) {
+            ViewGroup.LayoutParams lp = holder.rootView.getLayoutParams();
             LayoutParams p;
 
             if (lp == null) {
                 p = generateDefaultLayoutParams();
-                result.rootView.setLayoutParams(p);
+                holder.rootView.setLayoutParams(p);
             } else if (!checkLayoutParams(lp)) {
                 p = generateLayoutParams(lp);
-                result.rootView.setLayoutParams(p);
+                holder.rootView.setLayoutParams(p);
             } else {
                 p = (LayoutParams) lp;
             }
 
-            result.position = position;
-            p.mViewHolder = result;
-
-            return result;
+            holder.position = position;
+            p.mViewHolder = holder;
         }
 
         public LayoutParams generateDefaultLayoutParams() {

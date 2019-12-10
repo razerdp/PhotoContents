@@ -136,7 +136,7 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                 }
             }
 
-            private class InnerContainerAdapter extends PhotoContents.Adapter<ViewHolder> {
+            private class InnerContainerAdapter extends PhotoContents.Adapter {
 
                 private List<String> datas;
 
@@ -163,23 +163,35 @@ public class DemoActivity extends AppCompatActivity implements XRecyclerView.Loa
                 }
 
                 @Override
-                public ViewHolder onCreateViewHolder(ViewGroup parent, int position) {
-                    return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_img, parent, false));
+                public PhotoContents.ViewHolder onCreateViewHolder(ViewGroup parent, int position) {
+                    return getItemCount() == 1 ?
+                            new SingleViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_img_single, parent, false))
+                            :
+                            new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_img, parent, false));
                 }
 
                 @Override
-                public void onBindViewHolder(ViewHolder viewHolder, int position) {
-                    if (getItemCount() == 1) {
-                        viewHolder.iv.setAdjustViewBounds(true);
-                        viewHolder.iv.setScaleType(ImageView.ScaleType.FIT_START);
-                    } else {
-                        viewHolder.iv.setAdjustViewBounds(false);
-                        viewHolder.iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                public void onBindViewHolder(PhotoContents.ViewHolder viewHolder, int position) {
+                    ImageView iv = null;
+                    if (viewHolder instanceof SingleViewHolder) {
+                        iv = ((SingleViewHolder) viewHolder).iv;
+                    } else if (viewHolder instanceof ViewHolder) {
+                        iv = ((ViewHolder) viewHolder).iv;
                     }
-                    ImageLoadManager.INSTANCE.loadImage(viewHolder.iv, datas.get(position));
+                    if (iv == null) return;
+
+                    ImageLoadManager.INSTANCE.loadImage(iv, datas.get(position));
                 }
             }
 
+            class SingleViewHolder extends PhotoContents.ViewHolder {
+                ImageView iv;
+
+                SingleViewHolder(View rootView) {
+                    super(rootView);
+                    iv = findViewById(R.id.iv_img);
+                }
+            }
 
             class ViewHolder extends PhotoContents.ViewHolder {
                 ImageView iv;

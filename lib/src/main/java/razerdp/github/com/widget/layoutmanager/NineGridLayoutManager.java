@@ -16,9 +16,11 @@ public class NineGridLayoutManager extends PhotoContents.LayoutManager {
     private static final String TAG = "NineGridLayoutManager";
     private int itemSpace = 0;
     private LayoutState mLayoutState;
+    SimplePool<PhotoContents.ViewHolder> mSinglePool;
 
     public NineGridLayoutManager(int itemSpace) {
         this.itemSpace = itemSpace;
+        mSinglePool = new SimplePool<>(9);
         mLayoutState = new LayoutState();
     }
 
@@ -26,13 +28,14 @@ public class NineGridLayoutManager extends PhotoContents.LayoutManager {
     public void onMeasure(@NonNull SimplePool<PhotoContents.ViewHolder> pool, @NonNull PhotoContents.State state, int widthSpec, int heightSpec) {
         mLayoutState.widthMeasureSpec = widthSpec;
         mLayoutState.heightMeasureSpec = heightSpec;
+        mLayoutState.itemCount = state.getItemCount();
         if (state.isDataChanged()) {
             doRecycler();
         }
 
         if (state.getItemCount() == 1) {
-            int parentHeight = View.MeasureSpec.getSize(heightSpec);
-            int parentWidth = View.MeasureSpec.getSize(widthSpec);
+            int parentHeight = View.MeasureSpec.getSize(heightSpec) - getParent().getPaddingTop() - getParent().getPaddingBottom();
+            int parentWidth = View.MeasureSpec.getSize(widthSpec) - getParent().getPaddingLeft() - getParent().getPaddingRight();
             View v = measureChild(getChildAt(0), 0, widthSpec, View.MeasureSpec.makeMeasureSpec(parentHeight <= 0 ? parentWidth : parentHeight, View.MeasureSpec.AT_MOST));
             mLayoutState.widthMeasureSpec = widthSpec;
             mLayoutState.heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(v.getMeasuredHeight(), View.MeasureSpec.AT_MOST);
@@ -48,8 +51,8 @@ public class NineGridLayoutManager extends PhotoContents.LayoutManager {
     }
 
     private void measureWithExactly(PhotoContents.State state, int widthSpec, int heightSpec) {
-        int parentWidth = View.MeasureSpec.getSize(widthSpec);
-        int parentHeight = View.MeasureSpec.getSize(heightSpec);
+        int parentHeight = View.MeasureSpec.getSize(heightSpec) - getParent().getPaddingTop() - getParent().getPaddingBottom();
+        int parentWidth = View.MeasureSpec.getSize(widthSpec) - getParent().getPaddingLeft() - getParent().getPaddingRight();
 
         final int itemCount = state.getItemCount();
 
@@ -71,8 +74,8 @@ public class NineGridLayoutManager extends PhotoContents.LayoutManager {
         int widthMode = View.MeasureSpec.getMode(widthSpec);
         int heightMode = View.MeasureSpec.getMode(heightSpec);
 
-        int parentWidth = View.MeasureSpec.getSize(widthSpec);
-        int parentHeight = View.MeasureSpec.getSize(widthSpec);
+        int parentHeight = View.MeasureSpec.getSize(heightSpec) - getParent().getPaddingTop() - getParent().getPaddingBottom();
+        int parentWidth = View.MeasureSpec.getSize(widthSpec) - getParent().getPaddingLeft() - getParent().getPaddingRight();
 
         final int itemCount = state.getItemCount();
 
@@ -168,9 +171,31 @@ public class NineGridLayoutManager extends PhotoContents.LayoutManager {
         }
     }
 
+    @Override
+    protected PhotoContents.ViewHolder obtainViewHolder(int position) {
+        if (mLayoutState.itemCount == 1) {
+            PhotoContents.ViewHolder result = mSinglePool.acquire();
+            if (result == null) {
+                result = createFromAdapter(position);
+            }
+            onPrepareViewHolder(result, position);
+            return result;
+        }
+        return super.obtainViewHolder(position);
+    }
+
+    @Override
+    public boolean onInterceptRecycle(int childCount, int position, @NonNull PhotoContents.ViewHolder holder) {
+        if (childCount == 1) {
+            mSinglePool.release(holder);
+            return true;
+        }
+        return super.onInterceptRecycle(childCount, position, holder);
+    }
 
     private static class LayoutState {
         int widthMeasureSpec;
         int heightMeasureSpec;
+        int itemCount;
     }
 }
