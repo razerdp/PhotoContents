@@ -23,7 +23,8 @@ ps，本控件初衷是为了我的另一个项目[一起撸个朋友圈吧](htt
 # Preview:
 ![](https://github.com/razerdp/PhotoContents/blob/master/art/preview.gif)
 
-# Download  [ ![Download](https://api.bintray.com/packages/razerdp/maven/PhotoContents/images/download.svg) ](https://bintray.com/razerdp/maven/PhotoContents/_latestVersion)
+# Download  [ ![Download](https://api.bintray.com/packages/razerdp/maven/PhotoContents/images/download.svg) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frazerdp%2FPhotoContents.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Frazerdp%2FPhotoContents?ref=badge_shield)
+](https://bintray.com/razerdp/maven/PhotoContents/_latestVersion)
 
 **Step 1.**
 
@@ -46,3 +47,7 @@ Add the dependency
     + 修复点击后点击空白页面响应了之前的点击事件的问题
 
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frazerdp%2FPhotoContents.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Frazerdp%2FPhotoContents?ref=badge_large)
